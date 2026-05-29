@@ -46,6 +46,9 @@ import com.example.data.model.EmailItem
 import com.example.services.CalendarEvent
 import com.example.services.CalendarManager
 import com.example.ui.AgentViewModel
+import com.example.permissions.PermissionsManager
+import com.example.permissions.AgentPermission
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
@@ -55,18 +58,33 @@ import java.util.*
 @Composable
 fun MainAgentView(
     viewModel: AgentViewModel,
+    permissionsManager: PermissionsManager,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var currentTab by remember { mutableStateOf("chat") }
     
-    // Read Calendar permissions state
-    var hasCalendarPerms by remember { mutableStateOf(CalendarManager.hasPermissions(context)) }
+    // Track runtime permission states
+    var hasCalendarPerms by remember {
+        mutableStateOf(
+            permissionsManager.isGranted(AgentPermission.READ_CALENDAR) &&
+            permissionsManager.isGranted(AgentPermission.WRITE_CALENDAR)
+        )
+    }
+    var hasContactsPerms by remember { mutableStateOf(permissionsManager.isGranted(AgentPermission.READ_CONTACTS)) }
+    var hasLocationPerms by remember { mutableStateOf(permissionsManager.isGranted(AgentPermission.ACCESS_FINE_LOCATION)) }
+    var hasSmsPerms by remember { mutableStateOf(permissionsManager.isGranted(AgentPermission.SEND_SMS)) }
+    var hasAccountsPerms by remember { mutableStateOf(permissionsManager.isGranted(AgentPermission.GET_ACCOUNTS)) }
     
-    val permissionsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
-        hasCalendarPerms = results.values.all { it }
+    val requestCalendarPermissions = {
+        coroutineScope.launch {
+            val results = permissionsManager.requestPermissions(
+                AgentPermission.READ_CALENDAR,
+                AgentPermission.WRITE_CALENDAR
+            )
+            hasCalendarPerms = results.values.all { it }
+        }
     }
 
     Scaffold(
@@ -109,31 +127,42 @@ fun MainAgentView(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             when (currentTab) {
-                "chat" -> AgentChatTab(viewModel, hasCalendarPerms) {
-                    permissionsLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.READ_CALENDAR,
-                            Manifest.permission.WRITE_CALENDAR
-                        )
-                    )
-                }
+                "chat" -> AgentChatTab(viewModel, hasCalendarPerms, onRequestPermissions = { requestCalendarPermissions() })
                 "inbox" -> SimulatedInboxTab(viewModel, onNavigateToChat = { currentTab = "chat" })
-                "calendar" -> SystemCalendarTab(viewModel, hasCalendarPerms) {
-                    permissionsLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.READ_CALENDAR,
-                            Manifest.permission.WRITE_CALENDAR
-                        )
-                    )
-                }
-                "settings" -> AgentSettingsTab(viewModel, hasCalendarPerms) {
-                    permissionsLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.READ_CALENDAR,
-                            Manifest.permission.WRITE_CALENDAR
-                        )
-                    )
-                }
+                "calendar" -> SystemCalendarTab(viewModel, hasCalendarPerms, onRequestPermissions = { requestCalendarPermissions() })
+                "settings" -> AgentSettingsTab(
+                    viewModel = viewModel,
+                    hasCalendarPerms = hasCalendarPerms,
+                    hasContactsPerms = hasContactsPerms,
+                    hasLocationPerms = hasLocationPerms,
+                    hasSmsPerms = hasSmsPerms,
+                    hasAccountsPerms = hasAccountsPerms,
+                    onRequestCalendarPerms = { requestCalendarPermissions() },
+                    onRequestContactsPerms = {
+                        coroutineScope.launch {
+                            val results = permissionsManager.requestPermissions(AgentPermission.READ_CONTACTS)
+                            hasContactsPerms = results.values.firstOrNull() ?: false
+                        }
+                    },
+                    onRequestLocationPerms = {
+                        coroutineScope.launch {
+                            val results = permissionsManager.requestPermissions(AgentPermission.ACCESS_FINE_LOCATION)
+                            hasLocationPerms = results.values.firstOrNull() ?: false
+                        }
+                    },
+                    onRequestSmsPerms = {
+                        coroutineScope.launch {
+                            val results = permissionsManager.requestPermissions(AgentPermission.SEND_SMS)
+                            hasSmsPerms = results.values.firstOrNull() ?: false
+                        }
+                    },
+                    onRequestAccountsPerms = {
+                        coroutineScope.launch {
+                            val results = permissionsManager.requestPermissions(AgentPermission.GET_ACCOUNTS)
+                            hasAccountsPerms = results.values.firstOrNull() ?: false
+                        }
+                    }
+                )
             }
         }
     }
@@ -1316,7 +1345,15 @@ fun CalendarEventCard(event: CalendarEvent) {
 fun AgentSettingsTab(
     viewModel: AgentViewModel,
     hasCalendarPerms: Boolean,
-    onRequestPermissions: () -> Unit
+    hasContactsPerms: Boolean,
+    hasLocationPerms: Boolean,
+    hasSmsPerms: Boolean,
+    hasAccountsPerms: Boolean,
+    onRequestCalendarPerms: () -> Unit,
+    onRequestContactsPerms: () -> Unit,
+    onRequestLocationPerms: () -> Unit,
+    onRequestSmsPerms: () -> Unit,
+    onRequestAccountsPerms: () -> Unit
 ) {
     val activeProvider = viewModel.preferencesManager.activeProvider
     val model = viewModel.preferencesManager.getActiveModel()
@@ -1503,7 +1540,7 @@ fun AgentSettingsTab(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         "On-Device System Access",
                         fontWeight = FontWeight.Bold,
@@ -1511,12 +1548,16 @@ fun AgentSettingsTab(
                         color = MaterialTheme.colorScheme.primary
                     )
                     
+                    // Calendar permission row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Calendar Integration Sync", fontSize = 12.sp)
+                        Column {
+                            Text("Calendar Integration Sync", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Read and write calendar events", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         if (hasCalendarPerms) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
@@ -1525,7 +1566,123 @@ fun AgentSettingsTab(
                             }
                         } else {
                             Button(
-                                onClick = onRequestPermissions,
+                                onClick = onRequestCalendarPerms,
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text("Connect", fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+
+                    // Contacts permission row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Contacts Sync", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Identify friends and colleagues", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (hasContactsPerms) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Button(
+                                onClick = onRequestContactsPerms,
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text("Connect", fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+
+                    // Location permission row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Precise Location", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Provide localized suggestions", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (hasLocationPerms) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Button(
+                                onClick = onRequestLocationPerms,
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text("Connect", fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+
+                    // SMS permission row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("SMS Integration", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Draft and send message responses", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (hasSmsPerms) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Button(
+                                onClick = onRequestSmsPerms,
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text("Connect", fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+
+                    // Accounts permission row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Device Accounts Access", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("Scan email profiles dynamically", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (hasAccountsPerms) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            Button(
+                                onClick = onRequestAccountsPerms,
                                 contentPadding = PaddingValues(horizontal = 8.dp),
                                 modifier = Modifier.height(28.dp)
                             ) {
