@@ -26,6 +26,7 @@ class PreferencesManager(context: Context) {
         private const val KEY_ACTIVE_PROVIDER = "active_provider" // "OPENAI", "ANTHROPIC", "GEMINI"
         private const val KEY_SELECTED_MODEL = "selected_model"
         private const val KEY_DOWNLOADED_AGENTS = "downloaded_local_agents"
+        private const val KEY_ACTIVE_AGENTS = "active_local_agents"
     }
 
     var openAiApiKey: String
@@ -51,6 +52,10 @@ class PreferencesManager(context: Context) {
     var downloadedLocalAgents: Set<String>
         get() = prefs.getStringSet(KEY_DOWNLOADED_AGENTS, emptySet()) ?: emptySet()
         set(value) = prefs.edit().putStringSet(KEY_DOWNLOADED_AGENTS, value).apply()
+
+    var activeLocalAgents: Set<String>
+        get() = prefs.getStringSet(KEY_ACTIVE_AGENTS, emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet(KEY_ACTIVE_AGENTS, value).apply()
 
     fun getActiveApiKey(): String {
         return when (activeProvider) {

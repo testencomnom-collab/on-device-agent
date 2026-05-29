@@ -92,12 +92,20 @@ class LLMAgentService(
         val currentDateTimeStr = dateFormat.format(Date())
 
         val downloadedAgentIds = preferencesManager.downloadedLocalAgents
+        val activeAgentIds = preferencesManager.activeLocalAgents
+        val allAgents = com.example.data.model.LocalAgentRepository.agents
         val localAgentsStr = if (downloadedAgentIds.isEmpty()) {
             "No local agents installed yet."
         } else {
-            val allAgents = com.example.data.model.LocalAgentRepository.agents
             downloadedAgentIds.mapNotNull { id ->
                 allAgents.find { it.id == id }?.let { "- ${it.name} (${it.category}): ${it.description}" }
+            }.joinToString("\n")
+        }
+        val activeAgentsStr = if (activeAgentIds.isEmpty()) {
+            "No active agents."
+        } else {
+            activeAgentIds.mapNotNull { id ->
+                allAgents.find { it.id == id }?.let { "- ${it.name} (${it.category})" }
             }.joinToString("\n")
         }
 
@@ -116,6 +124,10 @@ class LLMAgentService(
             
             --- AVAILABLE LOCAL PLUGINS/AGENTS ---
             $localAgentsStr
+            -----------------------------------------
+            
+            --- ACTIVE LOCAL AGENTS ---
+            $activeAgentsStr
             -----------------------------------------
             
             Based on the user's request, perform the necessary agent tasks. 

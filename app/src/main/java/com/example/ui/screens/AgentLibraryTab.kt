@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -170,7 +171,9 @@ fun AgentLibraryTab(viewModel: AgentViewModel) {
                     AgentMarketplaceCard(
                         agent = agent,
                         isDownloaded = downloadedAgents.contains(agent.id),
-                        onDownloadStart = { viewModel.downloadAgent(agent.id) }
+                        isActive = viewModel.activeAgentsFlow.collectAsStateWithLifecycle().value.contains(agent.id),
+                        onDownloadStart = { viewModel.downloadAgent(agent.id) },
+                        onActiveChange = { isActive -> viewModel.setAgentActive(agent.id, isActive) }
                     )
                 }
             }
@@ -182,7 +185,9 @@ fun AgentLibraryTab(viewModel: AgentViewModel) {
 fun AgentMarketplaceCard(
     agent: LocalAgentModel,
     isDownloaded: Boolean,
-    onDownloadStart: () -> Unit
+    isActive: Boolean = false,
+    onDownloadStart: () -> Unit,
+    onActiveChange: (Boolean) -> Unit = {}
 ) {
     var isDownloading by remember { mutableStateOf(false) }
     var downloadProgress by remember { mutableStateOf(0f) }
@@ -277,28 +282,28 @@ fun AgentMarketplaceCard(
 
                 // Status Indicator / Switch Control
                 if (isDownloaded) {
-                    var isActivated by remember { mutableStateOf(true) }
+                    // Use provided active state; update via callback
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
                                 .background(
-                                    if (isActivated) Color(0xFF10B981).copy(alpha = 0.15f)
+                                    if (isActive) Color(0xFF10B981).copy(alpha = 0.15f)
                                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = if (isActivated) "AKTIV" else "INAKTIV",
+                                text = if (isActive) "AKTIV" else "INAKTIV",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isActivated) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Switch(
-                            checked = isActivated,
-                            onCheckedChange = { isActivated = it },
+                            checked = isActive,
+                            onCheckedChange = { onActiveChange(it) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
                                 checkedTrackColor = Color(0xFF10B981),

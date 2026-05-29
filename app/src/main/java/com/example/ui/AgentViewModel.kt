@@ -50,6 +50,7 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
     val activeProviderFlow = MutableStateFlow(preferencesManager.activeProvider)
     val activeModelFlow = MutableStateFlow(preferencesManager.getActiveModel())
     val downloadedAgentsFlow = MutableStateFlow(preferencesManager.downloadedLocalAgents)
+    val activeAgentsFlow = MutableStateFlow(preferencesManager.activeLocalAgents)
 
     init {
         // Seed some starter emails for the simulated Inbox if empty
@@ -124,6 +125,19 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
             downloadedAgentsFlow.value = currentSet
             
             statusMessage.value = "$agentId successfully installed locally."
+        }
+    }
+
+    fun setAgentActive(agentId: String, isActive: Boolean) {
+        viewModelScope.launch {
+            val currentSet = preferencesManager.activeLocalAgents.toMutableSet()
+            if (isActive) {
+                currentSet.add(agentId)
+            } else {
+                currentSet.remove(agentId)
+            }
+            preferencesManager.activeLocalAgents = currentSet
+            activeAgentsFlow.value = currentSet
         }
     }
 
