@@ -47,6 +47,9 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
     val isLoading = MutableStateFlow(false)
     val statusMessage = MutableStateFlow<String?>(null)
 
+    val activeProviderFlow = MutableStateFlow(preferencesManager.activeProvider)
+    val activeModelFlow = MutableStateFlow(preferencesManager.getActiveModel())
+
     init {
         // Seed some starter emails for the simulated Inbox if empty
         viewModelScope.launch {
@@ -90,6 +93,8 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
         preferencesManager.activeProvider = provider
         // Reset to provider default models
         preferencesManager.selectedModel = ""
+        activeProviderFlow.value = provider
+        activeModelFlow.value = preferencesManager.getActiveModel()
     }
 
     fun updateApiKey(provider: String, key: String) {
@@ -103,6 +108,7 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateModel(modelName: String) {
         preferencesManager.selectedModel = modelName
+        activeModelFlow.value = modelName
     }
 
     fun sendMessage(query: String) {

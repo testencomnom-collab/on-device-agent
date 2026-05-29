@@ -342,8 +342,8 @@ fun AgentChatTab(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        val provider = viewModel.preferencesManager.activeProvider
-                        val model = viewModel.preferencesManager.getActiveModel()
+                        val provider by viewModel.activeProviderFlow.collectAsStateWithLifecycle()
+                        val model by viewModel.activeModelFlow.collectAsStateWithLifecycle()
                         Text(
                             "$provider $model",
                             fontWeight = FontWeight.Medium,
@@ -1355,8 +1355,8 @@ fun AgentSettingsTab(
     onRequestSmsPerms: () -> Unit,
     onRequestAccountsPerms: () -> Unit
 ) {
-    val activeProvider = viewModel.preferencesManager.activeProvider
-    val model = viewModel.preferencesManager.getActiveModel()
+    val activeProvider by viewModel.activeProviderFlow.collectAsStateWithLifecycle()
+    val model by viewModel.activeModelFlow.collectAsStateWithLifecycle()
 
     var openaiKey by remember { mutableStateOf(viewModel.preferencesManager.openAiApiKey) }
     var anthropicKey by remember { mutableStateOf(viewModel.preferencesManager.anthropicApiKey) }
