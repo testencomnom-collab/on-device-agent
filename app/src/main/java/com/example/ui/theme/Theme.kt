@@ -15,9 +15,16 @@ private val DarkColorScheme =
   darkColorScheme(
     primary = Primary,
     onPrimary = OnPrimary,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = OnPrimaryContainer,
     secondary = Secondary,
     onSecondary = OnSecondary,
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = OnSecondaryContainer,
     tertiary = Tertiary,
+    onTertiary = OnTertiary,
+    tertiaryContainer = TertiaryContainer,
+    onTertiaryContainer = OnTertiaryContainer,
     background = DarkBackground,
     surface = DarkSurface,
     surfaceVariant = DarkSurfaceVariant,
@@ -31,10 +38,16 @@ private val LightColorScheme = DarkColorScheme // Enforce dark theme
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = true, // Force dark theme
-  dynamicColor: Boolean = false, // Force disabled dynamic color
+  dynamicColor: Boolean = true, // Enable dynamic coloring for Material You (like Seal)
   content: @Composable () -> Unit,
 ) {
-  val colorScheme = DarkColorScheme
+  val context = LocalContext.current
+  val colorScheme = when {
+    dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+      dynamicDarkColorScheme(context)
+    }
+    else -> DarkColorScheme
+  }
 
   MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }

@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -433,29 +434,132 @@ fun AgentChatTab(
 
             if (isLoading) {
                 item {
-                    Row(
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.Start
+                            .padding(vertical = 8.dp)
+                            .animateContentSize()
                     ) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text("Agent is reasoning...", fontSize = 13.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(18.dp),
+                                            strokeWidth = 2.5.dp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            "Aktiver Automatisierungs-Task",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            "Der Agent verarbeitet Befehle...",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                
+                                // Elegant Status Pill
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        "REASONING",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(14.dp))
+                            
+                            // Seal-style background automation details
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            // Expandable Terminal Log Window
+                            var showTerminalLogs by remember { mutableStateOf(true) }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF0F0E13))
+                                    .border(1.dp, Color(0xFF23212C), RoundedCornerShape(12.dp))
+                                    .clickable { showTerminalLogs = !showTerminalLogs }
+                                    .padding(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.Terminal,
+                                            contentDescription = "Terminal Logs",
+                                            tint = MaterialTheme.colorScheme.tertiary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            "Agenten-Denkprozess & Logs",
+                                            fontFamily = FontFamily.Monospace,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 10.sp,
+                                            color = MaterialTheme.colorScheme.tertiary
+                                        )
+                                    }
+                                    Icon(
+                                        if (showTerminalLogs) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = "Toggle Logs",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                }
+                                if (showTerminalLogs) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "> Initialisiere LLM-Modell...\n> Analysiere Berechtigungen und Kontext...\n> Delegiere an lokalen Automatisierungs-Subagenten...\n> Warte auf Systemantwort...",
+                                        fontSize = 11.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        lineHeight = 16.sp,
+                                        color = Color(0xFF10B981) // Matrix Green
+                                    )
+                                }
                             }
                         }
                     }
@@ -465,21 +569,38 @@ fun AgentChatTab(
 
         // Input bottom bar
         Surface(
-            color = MaterialTheme.colorScheme.background,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            color = Color.Transparent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f), RoundedCornerShape(28.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(28.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "AI Symbol",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp).size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 OutlinedTextField(
                     value = inputQuery,
                     onValueChange = { inputQuery = it },
-                    placeholder = { Text("Ask anything...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp) },
+                    placeholder = { 
+                        Text(
+                            "Automatisierungs-Befehl eingeben...", 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), 
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ) 
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .testTag("chat_input_text_field"),
@@ -490,6 +611,8 @@ fun AgentChatTab(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Send,
@@ -515,14 +638,14 @@ fun AgentChatTab(
                         }
                     },
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(44.dp)
                         .clip(RoundedCornerShape(percent = 50))
                         .background(MaterialTheme.colorScheme.primary)
                         .testTag("chat_send_button")
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send prompt",
+                        contentDescription = "Senden",
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -539,7 +662,12 @@ fun ChatMessageBubble(
 ) {
     val isUser = message.role == "user"
     val align = if (isUser) Alignment.End else Alignment.Start
-    val bg = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val shape = RoundedCornerShape(
+        topStart = 24.dp,
+        topEnd = 24.dp,
+        bottomStart = if (isUser) 24.dp else 6.dp,
+        bottomEnd = if (isUser) 6.dp else 24.dp
+    )
     val textCol = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface
 
     var showThoughts by remember { mutableStateOf(false) }
@@ -562,17 +690,31 @@ fun ChatMessageBubble(
                         .padding(end = 6.dp, top = 2.dp)
                 )
             }
-            Card(
-                colors = CardDefaults.cardColors(containerColor = bg),
-                shape = RoundedCornerShape(
-                    topStart = 16.dp,
-                    topEnd = 16.dp,
-                    bottomStart = if (isUser) 16.dp else 4.dp,
-                    bottomEnd = if (isUser) 4.dp else 16.dp
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            Box(
+                modifier = Modifier
+                    .clip(shape)
+                    .then(
+                        if (isUser) {
+                            Modifier.background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.secondary
+                                    )
+                                )
+                            )
+                        } else {
+                            Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                        }
+                    )
+                    .border(
+                        1.dp,
+                        if (isUser) Color.Transparent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                        shape
+                    )
+                    .padding(14.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column {
                     // Message Text
                     Text(
                         text = message.message,
@@ -587,10 +729,11 @@ fun ChatMessageBubble(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF0F0E13))
+                                .border(1.dp, Color(0xFF23212C), RoundedCornerShape(12.dp))
                                 .clickable { showThoughts = !showThoughts }
-                                .padding(8.dp)
+                                .padding(10.dp)
                                 .animateContentSize()
                         ) {
                             Row(
@@ -601,33 +744,34 @@ fun ChatMessageBubble(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         Icons.Outlined.Psychology,
-                                        contentDescription = "Thoughts",
-                                        tint = MaterialTheme.colorScheme.secondary,
+                                        contentDescription = "Gedankengänge",
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        "Agent Reasonings",
+                                        "Agenten-Denkprozess",
+                                        fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.secondary
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                                 Icon(
                                     if (showThoughts) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                    contentDescription = "Toggle Reasonings",
-                                    tint = MaterialTheme.colorScheme.secondary,
+                                    contentDescription = "Denkprozess umschalten",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
                             if (showThoughts) {
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = message.thought,
                                     fontSize = 11.sp,
                                     lineHeight = 15.sp,
                                     fontFamily = FontFamily.Monospace,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = Color(0xFF10B981) // Matrix Green
                                 )
                             }
                         }
@@ -844,13 +988,17 @@ fun SimulatedInboxTab(
     var subjectInput by remember { mutableStateOf("") }
     var bodyInput by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         // Inbox Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(vertical = 12.dp, horizontal = 16.dp)
+                .padding(vertical = 16.dp, horizontal = 20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -859,43 +1007,56 @@ fun SimulatedInboxTab(
             ) {
                 Column {
                     Text(
-                        "On-Device Simulated Inbox",
+                        "Simulierter Posteingang",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = (-0.5).sp
                     )
                     Text(
-                        "${emails.size} messages in simulated memory",
+                        "${emails.size} Nachrichten im Gerätespeicher",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
                     )
                 }
                 
-                Row {
-                    IconButton(onClick = { viewModel.clearInbox() }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { viewModel.clearInbox() },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                    ) {
                         Icon(
                             Icons.Default.DeleteSweep,
-                            contentDescription = "Clear Inbox",
-                            tint = MaterialTheme.colorScheme.error
+                            contentDescription = "Inbox leeren",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
+                    Spacer(modifier = Modifier.width(10.dp))
                     IconButton(
                         onClick = { openAddDialog = true },
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(MaterialTheme.colorScheme.primary)
                             .testTag("add_email_button")
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "Receive Email",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            contentDescription = "E-Mail simulieren",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
         }
 
-        HorizontalDivider()
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 
         // Emails Column
         if (emails.isEmpty()) {
@@ -908,18 +1069,24 @@ fun SimulatedInboxTab(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.Outlined.MailOutline,
-                        contentDescription = "No Mail",
+                        contentDescription = "Keine E-Mails",
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text("Inbox is dry", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
-                        "Simulate a incoming mail to test agent reply routing!",
+                        "Posteingang ist leer", 
+                        fontWeight = FontWeight.Bold, 
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "Simuliere eine eingehende E-Mail, um die automatische Terminplanung und Antwort-Generierung des Agenten zu testen!",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(top = 4.dp, start = 20.dp, end = 20.dp),
-                        textAlign = TextAlign.Center
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp, start = 32.dp, end = 32.dp),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 18.sp
                     )
                 }
             }
@@ -928,15 +1095,15 @@ fun SimulatedInboxTab(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(emails) { email ->
                     EmailCard(email, onReplyWithAgent = {
-                        val prompt = "Analyze this email draft response and schedule a meeting if they requested:\n\n" +
-                                "From: ${email.sender}\n" +
-                                "Subject: ${email.subject}\n" +
-                                "Body: ${email.body}"
+                        val prompt = "Analysiere diese E-Mail, entwerfe eine Antwort und plane einen Kalendertermin, falls der Absender darum gebeten hat:\n\n" +
+                                "Von: ${email.sender}\n" +
+                                "Betreff: ${email.subject}\n" +
+                                "Inhalt: ${email.body}"
                         viewModel.sendMessage(prompt)
                         onNavigateToChat()
                     }, onDelete = {
@@ -951,14 +1118,27 @@ fun SimulatedInboxTab(
     if (openAddDialog) {
         AlertDialog(
             onDismissRequest = { openAddDialog = false },
-            title = { Text("Simulate Email Delivery", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            shape = RoundedCornerShape(28.dp),
+            title = { 
+                Text(
+                    "E-Mail-Eingang simulieren", 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                ) 
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Receive a new user email mock directly into memory.", fontSize = 12.sp)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Füge eine simulierte E-Mail in den lokalen Speicher ein, um den Agenten zu testen.", 
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     OutlinedTextField(
                         value = senderInput,
                         onValueChange = { senderInput = it },
-                        label = { Text("From Sender (e.g., boss@work.com)") },
+                        label = { Text("Absender (z. B. chef@firma.com)") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("email_sender_input")
@@ -966,7 +1146,8 @@ fun SimulatedInboxTab(
                     OutlinedTextField(
                         value = subjectInput,
                         onValueChange = { subjectInput = it },
-                        label = { Text("Subject Line") },
+                        label = { Text("Betreff") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("email_subject_input")
@@ -974,7 +1155,8 @@ fun SimulatedInboxTab(
                     OutlinedTextField(
                         value = bodyInput,
                         onValueChange = { bodyInput = it },
-                        label = { Text("Message Body Prompt") },
+                        label = { Text("Nachrichtentext") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(120.dp)
@@ -993,13 +1175,20 @@ fun SimulatedInboxTab(
                             openAddDialog = false
                         }
                     },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.testTag("email_confirm_add")
                 ) {
-                    Text("Deliver")
+                    Text("Empfangen")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { openAddDialog = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = { openAddDialog = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) { 
+                    Text("Abbrechen") 
+                }
             }
         )
     }
@@ -1013,73 +1202,87 @@ fun EmailCard(
 ) {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiary
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         shape = RoundedCornerShape(24.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.AccountCircle,
-                        contentDescription = "Avatar",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.AccountCircle,
+                            contentDescription = "Absender",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         email.sender,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                IconButton(onClick = onDelete, modifier = Modifier.size(20.dp)) {
+                IconButton(
+                    onClick = onDelete, 
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                ) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Delete mock",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(16.dp)
+                        contentDescription = "Löschen",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 email.subject,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 email.body,
                 fontSize = 12.sp,
-                lineHeight = 16.sp,
+                lineHeight = 17.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Button(
                 onClick = onReplyWithAgent,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(0.dp)
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(vertical = 10.dp)
             ) {
                 Icon(
                     Icons.Default.SupportAgent,
-                    contentDescription = "Delegate",
+                    contentDescription = "Verarbeiten",
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Process Reply with AI Agent", fontSize = 11.sp)
+                Text("E-Mail mit KI-Agent verarbeiten", fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1110,12 +1313,17 @@ fun SystemCalendarTab(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Calendar Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(vertical = 12.dp, horizontal = 16.dp)
+                .padding(vertical = 16.dp, horizontal = 20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1124,32 +1332,48 @@ fun SystemCalendarTab(
             ) {
                 Column {
                     Text(
-                        "On-Device Active Planner",
+                        "Terminkalender",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = (-0.5).sp
                     )
                     Text(
-                        "Querying local calendar (Next 7 Days)",
+                        "Lokale Kalenderkonflikte (Nächste 7 Tage)",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
-                Row {
-                    IconButton(onClick = { refreshIndicator++ }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh data")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { refreshIndicator++ },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh, 
+                            contentDescription = "Aktualisieren",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     if (hasCalendarPerms) {
+                        Spacer(modifier = Modifier.width(10.dp))
                         IconButton(
                             onClick = { testCreateDialog = true },
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(percent = 50))
+                                .background(MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(
                                 Icons.Default.Add,
-                                contentDescription = "Add slot",
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                contentDescription = "Termin hinzufügen",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -1157,7 +1381,7 @@ fun SystemCalendarTab(
             }
         }
 
-        HorizontalDivider()
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 
         if (!hasCalendarPerms) {
             Box(
@@ -1170,27 +1394,32 @@ fun SystemCalendarTab(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         Icons.Outlined.LockClock,
-                        contentDescription = "Permission Off",
+                        contentDescription = "Gesperrt",
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     Text(
-                        "Calendar System Blocked",
+                        "Kalenderzugriff blockiert",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onErrorContainer
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "The agent reads dynamic calendar conflicts from local device schemas to execute scheduling without overlaps. Allow runtime permissions.",
+                        "Der Agent liest Kalenderkonflikte von deinem Gerät ab, um Überschneidungen bei automatischen Planungen zu vermeiden. Bitte erteile die Berechtigung.",
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp, start = 20.dp, end = 20.dp),
+                        lineHeight = 18.sp
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onRequestPermissions) {
-                        Text("Grant Calendar Access")
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(
+                        onClick = onRequestPermissions,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Kalenderzugriff erlauben", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1205,18 +1434,24 @@ fun SystemCalendarTab(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             Icons.Outlined.CalendarToday,
-                            contentDescription = "No Events",
+                            contentDescription = "Keine Termine",
                             modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text("Calendar is clean", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Spacer(modifier = Modifier.height(14.dp))
                         Text(
-                            "Create an appointment or delegate schedule parsing directly via the Agent!",
+                            "Kalender ist frei", 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "Erstelle einen Termin oder lasse den KI-Agenten über den Chat deine Agenda für dich planen!",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 32.dp)
+                            modifier = Modifier.padding(horizontal = 40.dp, vertical = 6.dp),
+                            lineHeight = 18.sp
                         )
                     }
                 }
@@ -1225,8 +1460,8 @@ fun SystemCalendarTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
-                    contentPadding = PaddingValues(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(eventList) { event ->
                         CalendarEventCard(event)
@@ -1240,57 +1475,80 @@ fun SystemCalendarTab(
     if (testCreateDialog) {
         AlertDialog(
             onDismissRequest = { testCreateDialog = false },
-            title = { Text("Book System Appointment", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            shape = RoundedCornerShape(28.dp),
+            title = { 
+                Text(
+                    "Termin manuell buchen", 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                ) 
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Reserve standard 1-hour slot in local agenda beginning tomorrow morning directly.", fontSize = 12.sp)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "Trage einen standardmäßigen 1-stündigen Testtermin für morgen früh um 10:00 Uhr ein.", 
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     OutlinedTextField(
                         value = createTitle,
                         onValueChange = { createTitle = it },
-                        label = { Text("Event Title") },
+                        label = { Text("Titel des Termins") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = createDesc,
                         onValueChange = { createDesc = it },
-                        label = { Text("Description") },
+                        label = { Text("Beschreibung / Details") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    if (createTitle.isNotEmpty()) {
-                        // schedule tomorrow at 10 AM
-                        val tomorrow = Calendar.getInstance().apply {
-                            add(Calendar.DAY_OF_YEAR, 1)
-                            set(Calendar.HOUR_OF_DAY, 10)
-                            set(Calendar.MINUTE, 0)
-                        }
-                        val end = Calendar.getInstance().apply {
-                            timeInMillis = tomorrow.timeInMillis
-                            add(Calendar.HOUR_OF_DAY, 1)
-                        }
+                Button(
+                    onClick = {
+                        if (createTitle.isNotEmpty()) {
+                            // schedule tomorrow at 10 AM
+                            val tomorrow = Calendar.getInstance().apply {
+                                add(Calendar.DAY_OF_YEAR, 1)
+                                set(Calendar.HOUR_OF_DAY, 10)
+                                set(Calendar.MINUTE, 0)
+                            }
+                            val end = Calendar.getInstance().apply {
+                                timeInMillis = tomorrow.timeInMillis
+                                add(Calendar.HOUR_OF_DAY, 1)
+                            }
 
-                        CalendarManager.insertEvent(
-                            context = context,
-                            title = createTitle,
-                            description = createDesc,
-                            startMillis = tomorrow.timeInMillis,
-                            endMillis = end.timeInMillis
-                        )
-                        
-                        createTitle = ""
-                        createDesc = ""
-                        testCreateDialog = false
-                        refreshIndicator++
-                    }
-                }) {
-                    Text("Schedule")
+                            CalendarManager.insertEvent(
+                                context = context,
+                                title = createTitle,
+                                description = createDesc,
+                                startMillis = tomorrow.timeInMillis,
+                                endMillis = end.timeInMillis
+                            )
+                            
+                            createTitle = ""
+                            createDesc = ""
+                            testCreateDialog = false
+                            refreshIndicator++
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Buchen")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { testCreateDialog = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = { testCreateDialog = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) { 
+                    Text("Abbrechen") 
+                }
             }
         )
     }
@@ -1299,48 +1557,57 @@ fun SystemCalendarTab(
 @Composable
 fun CalendarEventCard(event: CalendarEvent) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+        shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(42.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.DateRange,
-                    contentDescription = "Event icon",
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    contentDescription = "Event",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(event.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text(
+                    event.title, 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
                 if (!event.description.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         event.description,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1
                     )
                 }
                 
-                val sdf = SimpleDateFormat("E d MMM | h:mm a", Locale.getDefault())
-                val endSdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+                val sdf = SimpleDateFormat("EEEE, d. MMMM • HH:mm", Locale.getDefault())
+                val endSdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "${sdf.format(Date(event.startTime))} - ${endSdf.format(Date(event.endTime))}",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 2.dp)
+                    "${sdf.format(Date(event.startTime))} - ${endSdf.format(Date(event.endTime))} Uhr",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -1385,43 +1652,63 @@ fun AgentSettingsTab(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text(
-                "Agent Configurations",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                "Configure your LLM provider Keys below. All credentials remain fully isolated locally on your device within SharedPreferences.",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
+            Column(modifier = Modifier.padding(bottom = 4.dp)) {
+                Text(
+                    "System-Konfigurationen",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    letterSpacing = (-0.5).sp
+                )
+                Text(
+                    "Verwalte deine lokalen KI-Modelle, System-Berechtigungen und API-Zugangsdaten isoliert und sicher auf deinem Smartphone.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
 
         // --- LLM Providers configuration ---
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(12.dp)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        "LLM Selection & API Credentials",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Key,
+                            contentDescription = "API Keys",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "API-Schlüssel & KI-Provider",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
 
                     // Select provider Segment tabs
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                            .padding(4.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         listOf("OPENAI", "ANTHROPIC", "GEMINI").forEach { prov ->
@@ -1432,9 +1719,10 @@ fun AgentSettingsTab(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
                                     .clickable { viewModel.selectProvider(prov) }
                                     .background(col)
-                                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                                    .padding(vertical = 10.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -1451,7 +1739,13 @@ fun AgentSettingsTab(
 
                     // Config Key OpenAI
                     Column {
-                        Text("OpenAI Key", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "OpenAI API-Key", 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 11.sp, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
+                        )
                         OutlinedTextField(
                             value = openaiKey,
                             onValueChange = {
@@ -1463,7 +1757,8 @@ fun AgentSettingsTab(
                                 IconButton(onClick = { showPasswordOpenai = !showPasswordOpenai }) {
                                     Icon(
                                         if (showPasswordOpenai) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = "Toggle password"
+                                        contentDescription = "Sichtbarkeit umschalten",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             },
@@ -1472,13 +1767,19 @@ fun AgentSettingsTab(
                                 .fillMaxWidth()
                                 .testTag("openai_api_key_field"),
                             maxLines = 1,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
 
                     // Config Key Anthropic
                     Column {
-                        Text("Anthropic Key", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "Anthropic API-Key", 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 11.sp, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
+                        )
                         OutlinedTextField(
                             value = anthropicKey,
                             onValueChange = {
@@ -1490,7 +1791,8 @@ fun AgentSettingsTab(
                                 IconButton(onClick = { showPasswordAnthropic = !showPasswordAnthropic }) {
                                     Icon(
                                         if (showPasswordAnthropic) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = "Toggle password"
+                                        contentDescription = "Sichtbarkeit umschalten",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             },
@@ -1499,13 +1801,19 @@ fun AgentSettingsTab(
                                 .fillMaxWidth()
                                 .testTag("anthropic_api_key_field"),
                             maxLines = 1,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
 
                     // Config Key Gemini
                     Column {
-                        Text("Gemini Key", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "Gemini API-Key", 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 11.sp, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
+                        )
                         OutlinedTextField(
                             value = geminiKey,
                             onValueChange = {
@@ -1517,7 +1825,8 @@ fun AgentSettingsTab(
                                 IconButton(onClick = { showPasswordGemini = !showPasswordGemini }) {
                                     Icon(
                                         if (showPasswordGemini) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = "Toggle password"
+                                        contentDescription = "Sichtbarkeit umschalten",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             },
@@ -1526,18 +1835,35 @@ fun AgentSettingsTab(
                                 .fillMaxWidth()
                                 .testTag("gemini_api_key_field"),
                             maxLines = 1,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    Text(
-                        text = "Current Active Model Default: $model",
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.SmartToy,
+                            contentDescription = "Model",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Standard-Modell: $model",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -1545,159 +1871,79 @@ fun AgentSettingsTab(
         // Permissions Card status
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(12.dp)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "On-Device System Access",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    
-                    // Calendar permission row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("Calendar Integration Sync", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Read and write calendar events", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (hasCalendarPerms) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            Button(
-                                onClick = onRequestCalendarPerms,
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Text("Connect", fontSize = 10.sp)
-                            }
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = "Permissions",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Geräte- & Systemberechtigungen",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
+                    
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                    // Calendar permission row
+                    PermissionItemRow(
+                        title = "Kalender-Synchronisation",
+                        description = "Erlaubt das automatische Prüfen und Buchen von Terminen.",
+                        hasPermission = hasCalendarPerms,
+                        onRequest = onRequestCalendarPerms
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 
                     // Contacts permission row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("Contacts Sync", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Identify friends and colleagues", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (hasContactsPerms) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            Button(
-                                onClick = onRequestContactsPerms,
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Text("Connect", fontSize = 10.sp)
-                            }
-                        }
-                    }
+                    PermissionItemRow(
+                        title = "Kontakte-Synchronisation",
+                        description = "Erlaubt das Zuordnen von Namen und Kontaktdaten.",
+                        hasPermission = hasContactsPerms,
+                        onRequest = onRequestContactsPerms
+                    )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 
                     // Location permission row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("Precise Location", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Provide localized suggestions", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (hasLocationPerms) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            Button(
-                                onClick = onRequestLocationPerms,
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Text("Connect", fontSize = 10.sp)
-                            }
-                        }
-                    }
+                    PermissionItemRow(
+                        title = "Standort-Zugriff",
+                        description = "Für ortsabhängige Planungen und Empfehlungen.",
+                        hasPermission = hasLocationPerms,
+                        onRequest = onRequestLocationPerms
+                    )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 
                     // SMS permission row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("SMS Integration", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Draft and send message responses", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (hasSmsPerms) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            Button(
-                                onClick = onRequestSmsPerms,
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Text("Connect", fontSize = 10.sp)
-                            }
-                        }
-                    }
+                    PermissionItemRow(
+                        title = "SMS-Schnittstelle",
+                        description = "Ermöglicht das automatische Entwerfen von SMS-Antworten.",
+                        hasPermission = hasSmsPerms,
+                        onRequest = onRequestSmsPerms
+                    )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 
                     // Accounts permission row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("Device Accounts Access", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Text("Scan email profiles dynamically", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (hasAccountsPerms) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Check, "Granted", tint = Color(0xFF10B981), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Active", fontSize = 11.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                            }
-                        } else {
-                            Button(
-                                onClick = onRequestAccountsPerms,
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Text("Connect", fontSize = 10.sp)
-                            }
-                        }
-                    }
+                    PermissionItemRow(
+                        title = "Geräte-Konten-Zugriff",
+                        description = "Ermöglicht das Identifizieren aktiver E-Mail-Profile.",
+                        hasPermission = hasAccountsPerms,
+                        onRequest = onRequestAccountsPerms
+                    )
                 }
             }
         }
@@ -1705,26 +1951,46 @@ fun AgentSettingsTab(
         // Maintenance
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(12.dp)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Workspace Maintenance",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Build,
+                            contentDescription = "Maintenance",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "System-Wartung",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
                     
                     Button(
                         onClick = { viewModel.clearHistory() },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.15f), contentColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
-                        Icon(Icons.Default.DeleteOutline, "Clear database", modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.DeleteOutline, 
+                            "Verlauf löschen", 
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Clear Agent Conversations", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Verlauf & Chats vollständig zurücksetzen", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1732,8 +1998,62 @@ fun AgentSettingsTab(
     }
 }
 
+@Composable
+fun PermissionItemRow(
+    title: String,
+    description: String,
+    hasPermission: Boolean,
+    onRequest: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(description, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 14.sp)
+        }
+        if (hasPermission) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Check, 
+                        "Aktiv", 
+                        tint = Color(0xFF10B981), 
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        "AKTIV", 
+                        fontSize = 9.sp, 
+                        color = Color(0xFF10B981), 
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        } else {
+            Button(
+                onClick = onRequest,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.height(32.dp)
+            ) {
+                Text("Zulassen", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
 // Helpers
 private fun formatTime(timestamp: Long): String {
-    val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
+
