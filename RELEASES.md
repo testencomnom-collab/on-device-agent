@@ -1,0 +1,21 @@
+# Release Notes
+
+## v1.0.0 — On-Device Agent
+
+### What's new
+- **Runtime permissions system** — The agent proactively requests Contacts, Calendar, Location access
+- **Encrypted API key storage** — Keys stored with `EncryptedSharedPreferences` (Android Keystore)
+- **R8/ProGuard minification** — Smaller, obfuscated APK for better security
+- **HTTP logging disabled in production** — No sensitive data leaked in release builds
+
+### Download
+The APK is available in the [`releases/`](releases/) folder: [on-device-agent-v1.0.0.apk](releases/on-device-agent-v1.0.0.apk)
+
+### Permissions requested at runtime
+| Permission | Purpose |
+|---|---|
+| READ_CALENDAR / WRITE_CALENDAR | Schedule & read events |
+| READ_CONTACTS | Address emails, identify people |
+| ACCESS_FINE_LOCATION | Location-based suggestions |
+| GET_ACCOUNTS | Email account integration |
+| SEND_SMS | Optional messaging extensions |
