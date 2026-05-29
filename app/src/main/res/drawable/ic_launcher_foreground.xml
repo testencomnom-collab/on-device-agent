@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Sophisticated Gradient Shadow drop -->
+    <path
+        android:fillColor="#15000000"
+        android:pathData="M 34 34 L 74 34 L 74 74 L 34 74 Z" />
+
+    <!-- Pure White / Cyan Elegant AI Agent Spark Star Icon centered in the 66dp safe zone (points 21,21 to 87,87) -->
+    <!-- Represents the intelligent star shield -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeWidth="1"
+        android:strokeColor="#10B981"
+        android:pathData="M 54,26 L 59,43 L 76,43 L 62,53 L 67,70 L 54,60 L 41,70 L 46,53 L 32,43 L 49,43 Z" />
+
+    <!-- Communication Dot Highlights (Cyan/Teal) -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M 54 38 A 3 3 0 1 1 53.9 38 Z" />
+    <path
+        android:fillColor="#0D9488"
+        android:pathData="M 39 53 A 2 2 0 1 1 38.9 53 Z" />
+    <path
+        android:fillColor="#0D9488"
+        android:pathData="M 69 53 A 2 2 0 1 1 68.9 53 Z" />
+</vector>
