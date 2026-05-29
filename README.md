@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🤖 On-Device Agent
+# 🤖 Android Mobile Automation Agent
 
-**An AI-powered Android assistant that manages your calendar, drafts emails, and answers questions — all running on your device.**
+**An AI-powered Android automation assistant designed specifically for mobile devices. It manages your calendar, drafts and sends emails, and automates daily tasks—running natively on Android to coordinate actions through device-level integrations.**
 
 [![Android](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
@@ -15,13 +15,12 @@
 
 ## ✨ Features
 
-- 🧠 **Multi-LLM Support** — Connect to OpenAI (GPT-4o), Anthropic (Claude), or Google Gemini as your AI backend
-- 📅 **Calendar Management** — View, create, and manage calendar events through natural language
-- 📧 **Email Drafting** — AI-assisted email composition with a built-in simulated inbox
-- 💬 **Conversational Chat** — Natural chat interface with persistent message history
-- 🔧 **Tool-Augmented AI** — The agent can call tools (calendar, email) to take real actions on your behalf
-- 🗄️ **Local Database** — Chat history and email drafts stored locally with Room
-- 🎨 **Material Design 3** — Modern, clean UI built entirely with Jetpack Compose
+- 📱 **Mobile Automation Engine** — Automatically reads, parses, and executes complex system actions on Android devices based on conversational queries.
+- 🔑 **Dynamic Runtime Permissions** — Natively requests and handles standard Android runtime permissions (Calendar, Contacts, Location, SMS, Accounts) to coordinate automated task routing.
+- 📅 **Natively Scheduled Workflows** — Automatically checks conflicts on your local device calendar and inserts/updates appointments without manual scheduling.
+- 📧 **Simulated & Real Email Automation** — Drafts context-aware email replies from mock inbox streams and invokes system intents to compose drafts in external mail apps.
+- 🧠 **Multi-LLM Integration** — Choose OpenAI (GPT-4o), Anthropic (Claude 3.5), or Google Gemini backends as the orchestration engine.
+- 🗄️ **Local Security & Cache** — Securely preserves conversation flows, inbox tables, and sensitive API keys locally utilizing SQLite (Room) and encrypted preferences.
 
 ---
 
