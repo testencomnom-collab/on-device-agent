@@ -25,14 +25,16 @@ data class AgentProposal(
     val thought: String,
     val responseText: String,
     val hasAction: Boolean,
-    val actionType: String, // "EMAIL", "CALENDAR", "BOTH", "NONE"
+    val actionType: String, // "EMAIL", "CALENDAR", "SYSTEM_ACTION", "BOTH", "NONE"
     val emailRecipient: String? = null,
     val emailSubject: String? = null,
     val emailBody: String? = null,
     val calendarTitle: String? = null,
     val calendarDesc: String? = null,
     val calendarStartMillis: Long? = null,
-    val calendarEndMillis: Long? = null
+    val calendarEndMillis: Long? = null,
+    val systemActionApp: String? = null,
+    val systemActionInstruction: String? = null
 )
 
 class LLMAgentService(
@@ -187,14 +189,15 @@ class LLMAgentService(
             
             Based on the user's request, perform the necessary agent tasks. 
             - If they ask to reply to or draft an email, compose the email response (recipient, subject, body).
-            - If they ask to schedule an event or meeting, analyze their calendar availability (under the schedule provided above) to find an open date/time that DOES NOT conflict with existing events. Make sure you select a valid date/time that complies with the request (e.g. 'tomorrow morning', 'next Tuesday at 2pm'). Convert that proposed time strictly to its absolute timestamp in milliseconds or ISO-8601 representation.
+            - If they ask to schedule an event or meeting, analyze their calendar availability to find an open date/time that DOES NOT conflict with existing events.
+            - If they ask to interact with an app (like Snapchat, WhatsApp, Instagram), or perform a deep system task, use a "SYSTEM_ACTION" to describe the sequence of accessibility/UI actions needed.
             
             You MUST return your entire output as a strictly valid, parsable JSON object. Do not include any markdown backticks, explanations outside the JSON, or leading/trailing text. The JSON structure MUST be:
             {
-               "thought": "Describe your step-by-step reasoning about calendar availability and email creation",
-               "responseText": "Interactive assistant message detailing what actions are drafted",
+               "thought": "Describe your step-by-step reasoning about calendar availability, email creation, or system UI actions",
+               "responseText": "Interactive assistant message detailing what actions are drafted or performed",
                "hasAction": true/false,
-               "actionType": "EMAIL" or "CALENDAR" or "BOTH" or "NONE",
+               "actionType": "EMAIL" or "CALENDAR" or "SYSTEM_ACTION" or "NONE",
                "emailAction": {
                   "recipient": "email address of the contact to email",
                   "subject": "email subject",
@@ -205,6 +208,10 @@ class LLMAgentService(
                   "description": "meeting description",
                   "startTimeIso": "ISO-8601 date string of proposed event (e.g., '2026-05-30T10:00:00')",
                   "endTimeIso": "ISO-8601 date string of proposed event (e.g., '2026-05-30T11:00:00')"
+               },
+               "systemAction": {
+                  "targetApp": "Name of the app (e.g., 'Snapchat')",
+                  "instruction": "Detailed instruction of what UI elements to click or text to type"
                }
             }
             
@@ -327,6 +334,15 @@ class LLMAgentService(
                 }
             }
 
+            var sysApp: String? = null
+            var sysInstruction: String? = null
+
+            val sysObj = json.optJSONObject("systemAction")
+            if (sysObj != null) {
+                sysApp = sysObj.optString("targetApp")
+                sysInstruction = sysObj.optString("instruction")
+            }
+
             return@withContext AgentProposal(
                 thought = thought,
                 responseText = responseMsg,
@@ -338,7 +354,9 @@ class LLMAgentService(
                 calendarTitle = title,
                 calendarDesc = desc,
                 calendarStartMillis = startMillisParsed,
-                calendarEndMillis = endMillisParsed
+                calendarEndMillis = endMillisParsed,
+                systemActionApp = sysApp,
+                systemActionInstruction = sysInstruction
             )
 
         } catch (e: Exception) {

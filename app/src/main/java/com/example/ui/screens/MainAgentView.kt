@@ -901,6 +901,9 @@ fun ProposedActionBlock(
         calendarDesc = json.optString("calendarDesc", "")
         calendarStart = json.optLong("calendarStart", 0L)
         calendarEnd = json.optLong("calendarEnd", 0L)
+
+        systemActionApp = json.optString("systemActionApp", "")
+        systemActionInstruction = json.optString("systemActionInstruction", "")
     } catch (e: Exception) {
         Log.e("ProposedActionBlock", "Parsing failed", e)
     }
@@ -1002,6 +1005,39 @@ fun ProposedActionBlock(
                             Text("Subj: $emailSubject", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(emailBody, fontSize = 10.sp, maxLines = 4)
+                        }
+                    }
+                }
+            }
+
+            // Action Details (System Action)
+            if (type == "SYSTEM_ACTION" || type == "BOTH") {
+                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.SettingsApplications,
+                            contentDescription = "System Action",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "Deep System Automation",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text("Target App: $systemActionApp", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Sequence: $systemActionInstruction", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
