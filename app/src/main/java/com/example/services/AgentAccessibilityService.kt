@@ -101,6 +101,70 @@ class AgentAccessibilityService : AccessibilityService() {
                 }
             }
         }
+        
+        // WhatsApp specific automation
+        if (AutomationState.targetApp == "com.whatsapp" && event.packageName?.toString() == "com.whatsapp") {
+            if (AutomationState.step == 1) {
+                val contactNodes = rootNode.findAccessibilityNodeInfosByText(AutomationState.recipient)
+                if (contactNodes.isNotEmpty()) {
+                    for (node in contactNodes) {
+                        if (node.isClickable) {
+                            node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            AutomationState.step = 2
+                            break
+                        } else if (node.parent?.isClickable == true) {
+                            node.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            AutomationState.step = 2
+                            break
+                        } else if (node.parent?.parent?.isClickable == true) {
+                            node.parent?.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            AutomationState.step = 2
+                            break
+                        }
+                    }
+                }
+            }
+
+            if (AutomationState.step == 2) {
+                // In WhatsApp's share sheet, clicking a contact reveals a green "Next/Send" fab at the bottom right.
+                val sendNodesId = rootNode.findAccessibilityNodeInfosByViewId("com.whatsapp:id/send")
+                val nextNodesId = rootNode.findAccessibilityNodeInfosByViewId("com.whatsapp:id/next")
+                val allFabs = sendNodesId + nextNodesId
+                
+                if (allFabs.isNotEmpty()) {
+                    val btn = allFabs.first()
+                    if (btn.isClickable) {
+                        btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        AutomationState.step = 3 // Move to chat view
+                        return
+                    } else if (btn.parent?.isClickable == true) {
+                        btn.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        AutomationState.step = 3
+                        return
+                    }
+                }
+            }
+            
+            if (AutomationState.step == 3) {
+                // In the actual chat window, find the final send button
+                val finalSendNodes = rootNode.findAccessibilityNodeInfosByViewId("com.whatsapp:id/send")
+                val descNodes = rootNode.findAccessibilityNodeInfosByText("Senden") + rootNode.findAccessibilityNodeInfosByText("Send")
+                val allFinal = finalSendNodes + descNodes
+                
+                if (allFinal.isNotEmpty()) {
+                    val btn = allFinal.first()
+                    if (btn.isClickable) {
+                        btn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        AutomationState.isRunning = false
+                        AutomationState.step = 0
+                    } else if (btn.parent?.isClickable == true) {
+                        btn.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        AutomationState.isRunning = false
+                        AutomationState.step = 0
+                    }
+                }
+            }
+        }
     }
 
     override fun onInterrupt() {

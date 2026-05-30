@@ -35,4 +35,5 @@
 
 # MediaPipe & AutoValue (R8 Fix)
 -dontwarn com.google.auto.value.**
+-dontwarn com.google.mediapipe.**
 -keep class com.google.mediapipe.** { *; }
