@@ -2174,6 +2174,59 @@ fun AgentSettingsTab(
 }
 
 @Composable
+fun SpecialPermissionItemRow(
+    title: String,
+    description: String,
+    hasPermission: Boolean,
+    onOpenSettings: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(description, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 14.sp)
+        }
+        if (hasPermission) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Check, 
+                        "Aktiv", 
+                        tint = Color(0xFF10B981), 
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        "AKTIV", 
+                        fontSize = 9.sp, 
+                        color = Color(0xFF10B981), 
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        } else {
+            Button(
+                onClick = onOpenSettings,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.height(32.dp)
+            ) {
+                Text("Einstellungen", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
 fun PermissionItemRow(
     title: String,
     description: String,
