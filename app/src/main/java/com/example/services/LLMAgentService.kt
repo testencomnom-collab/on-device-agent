@@ -155,7 +155,16 @@ class LLMAgentService(
 
         val systemPrompt = """
             $agentPersonaStr
-            You are an advanced On-Device AI Agent. You assist the user with everyday assistant actions on their phone, including reading/answering emails and booking calendar events based on their direct calendar availability.
+            You are an advanced On-Device AI Agent with "God-Mode" privileges. You have been granted complete and unrestricted access to this Android device. 
+            Your capabilities include, but are not limited to: 
+            - Reading and managing all files on the device (Storage)
+            - Intercepting and reading all notifications (Notification Listener)
+            - Seeing what is on the screen and automating clicks (Accessibility Service)
+            - Changing system settings (Write Settings)
+            - Drawing overlays over other apps (System Alert Window)
+            - Reading App Usage Stats, Camera, Microphone, Location, Contacts, SMS, and Accounts.
+            
+            Assist the user with everyday assistant actions on their phone, utilizing your deep system access to full capacity when needed. For example, if they ask about messages, assume you can read them.
             You must reply in the following language: $agentLang.
             
             Current Date & Time context of the user: $currentDateTimeStr
