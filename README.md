@@ -8,6 +8,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-Material3-4285F4?logo=jetpack-compose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Download APK](https://img.shields.io/badge/Download-Latest_APK-FF4500?style=for-the-badge&logo=android)](https://github.com/testencomnom-collab/on-device-agent/raw/main/releases/on-device-agent-v1.0.0.apk)
 
 </div>
 
@@ -16,6 +17,7 @@
 ## ✨ Features
 
 - 📱 **Mobile Automation Engine** — Automatically reads, parses, and executes complex system actions on Android devices based on conversational queries.
+- 🔌 **Fully Offline Simulated Agents** — No API key? No problem. The app falls back to a powerful offline local simulator where you can interact with mock versions of OpenHands, Goose, BrowserUse, and more.
 - 🔑 **Dynamic Runtime Permissions** — Natively requests and handles standard Android runtime permissions (Calendar, Contacts, Location, SMS, Accounts) to coordinate automated task routing.
 - 📅 **Natively Scheduled Workflows** — Automatically checks conflicts on your local device calendar and inserts/updates appointments without manual scheduling.
 - 📧 **Simulated & Real Email Automation** — Drafts context-aware email replies from mock inbox streams and invokes system intents to compose drafts in external mail apps.
