@@ -107,7 +107,7 @@ fun MainAgentView(
     var hasSmsPerms by remember { mutableStateOf(permissionsManager.isGranted(AgentPermission.SEND_SMS)) }
     var hasAccountsPerms by remember { mutableStateOf(permissionsManager.isGranted(AgentPermission.GET_ACCOUNTS)) }
     
-    val requestCalendarPermissions = {
+    val requestCalendarPermissions: () -> Unit = {
         coroutineScope.launch {
             val results = permissionsManager.requestPermissions(
                 AgentPermission.READ_CALENDAR,
@@ -282,24 +282,28 @@ fun MainAgentView(
                             val results = permissionsManager.requestPermissions(AgentPermission.READ_CONTACTS)
                             hasContactsPerms = results.values.all { it }
                         }
+                        Unit
                     },
                     onRequestLocationPerms = {
                         coroutineScope.launch {
                             val results = permissionsManager.requestPermissions(AgentPermission.ACCESS_FINE_LOCATION)
                             hasLocationPerms = results.values.firstOrNull() ?: false
                         }
+                        Unit
                     },
                     onRequestSmsPerms = {
                         coroutineScope.launch {
                             val results = permissionsManager.requestPermissions(AgentPermission.SEND_SMS)
                             hasSmsPerms = results.values.firstOrNull() ?: false
                         }
+                        Unit
                     },
                     onRequestAccountsPerms = {
                         coroutineScope.launch {
                             val results = permissionsManager.requestPermissions(AgentPermission.GET_ACCOUNTS)
                             hasAccountsPerms = results.values.firstOrNull() ?: false
                         }
+                        Unit
                     }
                 )
             }
