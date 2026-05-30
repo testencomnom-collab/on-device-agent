@@ -274,11 +274,13 @@ fun MainAgentView(
                     hasLocationPerms = hasLocationPerms,
                     hasSmsPerms = hasSmsPerms,
                     hasAccountsPerms = hasAccountsPerms,
-                    onRequestCalendarPerms = { requestCalendarPermissions() },
+                    permissionsManager = permissionsManager,
+                    coroutineScope = coroutineScope,
+                    onRequestCalendarPerms = requestCalendarPermissions,
                     onRequestContactsPerms = {
                         coroutineScope.launch {
                             val results = permissionsManager.requestPermissions(AgentPermission.READ_CONTACTS)
-                            hasContactsPerms = results.values.firstOrNull() ?: false
+                            hasContactsPerms = results.values.all { it }
                         }
                     },
                     onRequestLocationPerms = {
@@ -1386,6 +1388,8 @@ fun AgentSettingsTab(
     hasLocationPerms: Boolean,
     hasSmsPerms: Boolean,
     hasAccountsPerms: Boolean,
+    permissionsManager: com.example.permissions.PermissionsManager,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
     onRequestCalendarPerms: () -> Unit,
     onRequestContactsPerms: () -> Unit,
     onRequestLocationPerms: () -> Unit,
