@@ -50,12 +50,12 @@ class PreferencesManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_SELECTED_MODEL, value).apply()
 
     var downloadedLocalAgents: Set<String>
-        get() = prefs.getStringSet(KEY_DOWNLOADED_AGENTS, emptySet()) ?: emptySet()
-        set(value) = prefs.edit().putStringSet(KEY_DOWNLOADED_AGENTS, value).apply()
+        get() = prefs.getString(KEY_DOWNLOADED_AGENTS, "")?.split(",")?.filter { it.isNotEmpty() }?.toSet() ?: emptySet()
+        set(value) = prefs.edit().putString(KEY_DOWNLOADED_AGENTS, value.joinToString(",")).apply()
 
     var activeLocalAgents: Set<String>
-        get() = prefs.getStringSet(KEY_ACTIVE_AGENTS, emptySet()) ?: emptySet()
-        set(value) = prefs.edit().putStringSet(KEY_ACTIVE_AGENTS, value).apply()
+        get() = prefs.getString(KEY_ACTIVE_AGENTS, "")?.split(",")?.filter { it.isNotEmpty() }?.toSet() ?: emptySet()
+        set(value) = prefs.edit().putString(KEY_ACTIVE_AGENTS, value.joinToString(",")).apply()
 
     fun getActiveApiKey(): String {
         return when (activeProvider) {

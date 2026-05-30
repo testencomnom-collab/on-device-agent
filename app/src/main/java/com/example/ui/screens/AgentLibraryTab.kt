@@ -209,7 +209,7 @@ fun AgentMarketplaceCard(
         "crewai" -> Icons.Default.People
         "autogen" -> Icons.Default.SettingsSuggest
         "metagpt" -> Icons.Default.Apartment
-        "n8n" -> Icons.AutoMirrored.Filled.AltRoute
+        "n8n" -> Icons.Default.AltRoute
         "langflow" -> Icons.Default.AccountTree
         "smolagents" -> Icons.Default.Bolt
         else -> Icons.Default.SmartToy
