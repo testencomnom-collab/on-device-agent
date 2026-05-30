@@ -7,10 +7,13 @@ import androidx.room.RoomDatabase
 import com.example.data.model.ChatMessage
 import com.example.data.model.EmailItem
 
-@Database(entities = [ChatMessage::class, EmailItem::class], version = 1, exportSchema = false)
+import com.example.data.model.AgentConfigEntity
+
+@Database(entities = [ChatMessage::class, EmailItem::class, AgentConfigEntity::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
     abstract fun emailDao(): EmailDao
+    abstract fun agentConfigDao(): AgentConfigDao
 
     companion object {
         @Volatile

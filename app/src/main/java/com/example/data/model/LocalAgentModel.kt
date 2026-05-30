@@ -65,6 +65,12 @@ object LocalAgentRepository {
             description = "Ziehe Bausteine zusammen (z.B. PDF-Leser + Modell + Websuche) und baue maßgeschneiderte Agenten komplett ohne Code."
         ),
         LocalAgentModel(
+            id = "flowise",
+            name = "Flowise",
+            category = "Visuelle Baukästen",
+            description = "Open Source UI Visual Tool, um schnell angepasste LLM-Flows mit LangChain.js aufzubauen."
+        ),
+        LocalAgentModel(
             id = "smolagents",
             name = "Smolagents",
             category = "Minimalismus & Effizienz",

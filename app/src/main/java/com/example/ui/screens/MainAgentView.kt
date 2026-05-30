@@ -189,6 +189,17 @@ fun AgentChatTab(
     var inputQuery by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    val activeAgentId by viewModel.activeChatAgentId.collectAsStateWithLifecycle()
+    val activeAgentsSet by viewModel.activeAgentsFlow.collectAsStateWithLifecycle()
+    val allAgents = LocalAgentRepository.agents
+
+    val selectableAgents = mutableListOf(Pair("system", "Aura Agent"))
+    activeAgentsSet.forEach { id ->
+        allAgents.find { it.id == id }?.let { selectableAgents.add(Pair(it.id, it.name)) }
+    }
+    val currentAgentName = selectableAgents.find { it.first == activeAgentId }?.second ?: "Aura Agent"
+    var expanded by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize()) {
         // App Header
         Box(
@@ -217,21 +228,38 @@ fun AgentChatTab(
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column {
+                    Column(modifier = Modifier.clickable { expanded = true }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = currentAgentName,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                letterSpacing = (-0.5).sp
+                            )
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Agent")
+                        }
                         Text(
-                            text = "Aura Agent",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            letterSpacing = (-0.5).sp
-                        )
-                        Text(
-                            text = "SYSTEM ACTIVE",
+                            text = if (activeAgentId == "system") "SYSTEM ACTIVE" else "LOCAL OFFLINE",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             letterSpacing = 1.sp
                         )
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            selectableAgents.forEach { (id, name) ->
+                                DropdownMenuItem(
+                                    text = { Text(name) },
+                                    onClick = {
+                                        viewModel.activeChatAgentId.value = id
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }

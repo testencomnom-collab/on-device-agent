@@ -18,25 +18,32 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AgentViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
-    private val repository = AgentRepository(db.chatDao(), db.emailDao())
+    private val repository = AgentRepository(db.chatDao(), db.emailDao(), db.agentConfigDao())
     val preferencesManager = PreferencesManager(application)
     private val agentService = LLMAgentService(application, preferencesManager, repository)
 
+    val activeChatAgentId = MutableStateFlow("system")
+
     // Flow states
-    val chatHistory: StateFlow<List<ChatMessage>> = repository.allMessages.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val chatHistory: StateFlow<List<ChatMessage>> = activeChatAgentId
+        .flatMapLatest { agentId -> repository.getMessages(agentId) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     val emails: StateFlow<List<EmailItem>> = repository.allEmails.stateIn(
         scope = viewModelScope,
@@ -129,6 +136,19 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
             activeSet.add(agentId)
             preferencesManager.activeLocalAgents = activeSet
             activeAgentsFlow.value = activeSet
+
+            // Persist the actual config profile in database (Simulated internet download)
+            val agentModel = com.example.data.model.LocalAgentRepository.agents.find { it.id == agentId }
+            if (agentModel != null) {
+                val config = com.example.data.model.AgentConfigEntity(
+                    id = agentId,
+                    name = agentModel.name,
+                    category = agentModel.category,
+                    systemPrompt = "You are ${agentModel.name}, an expert in ${agentModel.category}. Be concise and helpful.",
+                    toolsAllowed = "EMAIL,CALENDAR"
+                )
+                repository.saveAgentConfig(config)
+            }
             
             statusMessage.value = "$agentId successfully installed locally."
         }
@@ -153,14 +173,14 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             isLoading.value = true
             // Save user message to database
-            val userMsg = ChatMessage(role = "user", message = query)
+            val userMsg = ChatMessage(agentId = activeChatAgentId.value, role = "user", message = query)
             repository.insertMessage(userMsg)
 
             // Compile existing simulated emails for context
             val currentEmails = emails.value
 
             // Call Agent Service
-            val proposal = agentService.executeAgentQuery(query, currentEmails)
+            val proposal = agentService.executeAgentQuery(activeChatAgentId.value, query, currentEmails)
 
             // Build action data payload if applicable
             var actionDataJson: String? = null
@@ -184,6 +204,7 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
 
             // Save assistant response
             val assistantMsg = ChatMessage(
+                agentId = activeChatAgentId.value,
                 role = "assistant",
                 message = proposal.responseText,
                 thought = proposal.thought,
@@ -267,10 +288,11 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
                     
                     // Add secondary notification message to history
                     val updateMsg = ChatMessage(
+                        agentId = message.agentId,
                         role = "assistant",
                         message = "🚀 Action Completed! " + when (type) {
                             "CALENDAR" -> "I scheduled the appointment in your on-device calendar."
-                            "EMAIL" -> "I drafted your response to email recipient.\"$rec\"."
+                            "EMAIL" -> "I drafted your response to email recipient \"$rec\"."
                             "BOTH" -> "I scheduled the calendar event AND prepared your email draft."
                             else -> "Action logged."
                         }
@@ -301,7 +323,7 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearHistory() {
         viewModelScope.launch {
-            repository.clearChatHistory()
+            repository.clearChatHistory(activeChatAgentId.value)
             statusMessage.value = "Chat history cleared."
         }
     }

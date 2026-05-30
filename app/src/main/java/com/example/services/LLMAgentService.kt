@@ -44,7 +44,7 @@ class LLMAgentService(
         private const val TAG = "LLMAgentService"
     }
 
-    suspend fun executeAgentQuery(userQuery: String, emailsContext: List<EmailItem>): AgentProposal = withContext(Dispatchers.IO) {
+    suspend fun executeAgentQuery(agentId: String, userQuery: String, emailsContext: List<EmailItem>): AgentProposal = withContext(Dispatchers.IO) {
         val activeProvider = preferencesManager.activeProvider
         val apiKey = preferencesManager.getActiveApiKey()
         val model = preferencesManager.getActiveModel()
@@ -227,7 +227,13 @@ class LLMAgentService(
             }.joinToString("\n")
         }
 
+        val agentConfig = if (agentId != "system") repository.getAgentConfig(agentId) else null
+        val agentPersonaStr = if (agentConfig != null) {
+            "--- ACTIVE AGENT PERSONA ---\n${agentConfig.systemPrompt}\n-----------------------------------------\n"
+        } else ""
+
         val systemPrompt = """
+            $agentPersonaStr
             You are an advanced On-Device AI Agent. You assist the user with everyday assistant actions on their phone, including reading/answering emails and booking calendar events based on their direct calendar availability.
             
             Current Date & Time context of the user: $currentDateTimeStr
