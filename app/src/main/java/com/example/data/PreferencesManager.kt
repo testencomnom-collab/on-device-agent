@@ -28,11 +28,16 @@ class PreferencesManager(context: Context) {
         private const val KEY_DOWNLOADED_AGENTS = "downloaded_local_agents"
         private const val KEY_ACTIVE_AGENTS = "active_local_agents"
         private const val KEY_AGENT_LANGUAGE = "agent_language"
+        private const val KEY_TTS_ENABLED = "tts_enabled"
     }
 
     var agentLanguage: String
         get() = prefs.getString(KEY_AGENT_LANGUAGE, "Deutsch") ?: "Deutsch"
         set(value) = prefs.edit { putString(KEY_AGENT_LANGUAGE, value) }
+
+    var isTtsEnabled: Boolean
+        get() = prefs.getBoolean(KEY_TTS_ENABLED, false)
+        set(value) = prefs.edit { putBoolean(KEY_TTS_ENABLED, value) }
 
     var openAiApiKey: String
         get() = prefs.getString(KEY_OPENAI_API_KEY, "") ?: ""

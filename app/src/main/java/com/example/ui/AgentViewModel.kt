@@ -17,6 +17,7 @@ import com.example.services.ActionHandler
 import com.example.services.AgentAccessibilityService
 import com.example.services.CalendarManager
 import com.example.services.LLMAgentService
+import android.speech.tts.TextToSpeech
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,19 +34,40 @@ import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class AgentViewModel(application: Application) : AndroidViewModel(application) {
+class AgentViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
 
     private val db = AppDatabase.getDatabase(application)
     private val repository = AgentRepository(db.chatDao(), db.notificationDao(), db.agentConfigDao())
     val preferencesManager = PreferencesManager(application)
     
     private var agentService: LLMAgentService? = null
+    private var tts: TextToSpeech? = null
 
     init {
         try {
             agentService = LLMAgentService(application, preferencesManager, repository)
         } catch (e: Throwable) {
             Log.e("AgentViewModel", "Could not initialize LLMAgentService: ${e.message}", e)
+        }
+        if (preferencesManager.isTtsEnabled) {
+            initTts()
+        }
+    }
+
+    fun initTts() {
+        if (tts == null) {
+            tts = TextToSpeech(getApplication(), this)
+        }
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = tts?.setLanguage(Locale.GERMAN)
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e("TTS", "The Language not supported!")
+            }
+        } else {
+            Log.e("TTS", "Initialization Failed!")
         }
     }
 
@@ -292,6 +314,11 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
                 actionExecuted = false
             )
             repository.insertMessage(assistantMsg)
+            
+            if (preferencesManager.isTtsEnabled) {
+                tts?.speak(proposal.responseText, TextToSpeech.QUEUE_FLUSH, null, "AgentTTSResponse")
+            }
+            
             isLoading.value = false
         }
     }
@@ -394,5 +421,7 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         agentService?.close()
+        tts?.stop()
+        tts?.shutdown()
     }
 }

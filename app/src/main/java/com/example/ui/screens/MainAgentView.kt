@@ -1467,6 +1467,61 @@ fun AgentSettingsTab(
             }
         }
 
+        // --- TTS Configuration ---
+        item {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.RecordVoiceOver,
+                            contentDescription = "Sprachausgabe (TTS)",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Sprachausgabe (TTS)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "Der Agent liest seine Antworten laut vor.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        var isTtsEnabled by remember { mutableStateOf(viewModel.preferencesManager.isTtsEnabled) }
+                        Switch(
+                            checked = isTtsEnabled,
+                            onCheckedChange = { 
+                                isTtsEnabled = it
+                                viewModel.preferencesManager.isTtsEnabled = it
+                                if (it) {
+                                    viewModel.initTts()
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         // --- LLM Providers configuration ---
         item {
             Card(

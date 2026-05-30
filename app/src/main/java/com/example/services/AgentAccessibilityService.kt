@@ -165,6 +165,49 @@ class AgentAccessibilityService : AccessibilityService() {
                 }
             }
         }
+        
+        // Generic automation for Instagram, Telegram, Discord
+        val genericApps = setOf("com.instagram.android", "org.telegram.messenger", "com.discord")
+        if (genericApps.contains(AutomationState.targetApp) && event.packageName?.toString() == AutomationState.targetApp) {
+            if (AutomationState.step == 1) {
+                val contactNodes = rootNode.findAccessibilityNodeInfosByText(AutomationState.recipient)
+                if (contactNodes.isNotEmpty()) {
+                    for (node in contactNodes) {
+                        if (node.isClickable) {
+                            node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            AutomationState.step = 2
+                            break
+                        } else if (node.parent?.isClickable == true) {
+                            node.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            AutomationState.step = 2
+                            break
+                        }
+                    }
+                }
+            }
+            if (AutomationState.step == 2) {
+                val sendNodes = rootNode.findAccessibilityNodeInfosByText("Senden") + 
+                                rootNode.findAccessibilityNodeInfosByText("Send") +
+                                rootNode.findAccessibilityNodeInfosByText("Fertig") +
+                                rootNode.findAccessibilityNodeInfosByText("Done")
+                
+                if (sendNodes.isNotEmpty()) {
+                    for (node in sendNodes) {
+                        if (node.isClickable) {
+                            node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            AutomationState.isRunning = false
+                            AutomationState.step = 0
+                            return
+                        } else if (node.parent?.isClickable == true) {
+                            node.parent?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            AutomationState.isRunning = false
+                            AutomationState.step = 0
+                            return
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun onInterrupt() {
