@@ -1804,6 +1804,115 @@ fun AgentSettingsTab(
             }
         }
 
+        // --- Deep System Integrations (Accessibility, Notifications, Usage) ---
+        item {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            // We use derivedStateOf or just read directly, but since we want it to update we can re-read on click or just let Compose re-evaluate when activity resumes
+            // For simplicity, we just call the helper methods directly. They will be evaluated on recomposition.
+            
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Android,
+                            contentDescription = "Deep System",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Tiefe System-Integration",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Accessibility Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Bedienungshilfen (Accessibility)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Agent kann Bildschirm lesen & tippen", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (com.example.permissions.SpecialPermissionsHelper.isAccessibilityServiceEnabled(context)) {
+                            Icon(Icons.Default.CheckCircle, "Aktiv", tint = Color(0xFF4CAF50))
+                        } else {
+                            Button(
+                                onClick = { context.startActivity(com.example.permissions.SpecialPermissionsHelper.getAccessibilitySettingsIntent()) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), contentColor = MaterialTheme.colorScheme.primary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Aktivieren", fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                    // Notification Listener Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Benachrichtigungs-Zugriff", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Agent kann eingehende Nachrichten lesen", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (com.example.permissions.SpecialPermissionsHelper.isNotificationListenerEnabled(context)) {
+                            Icon(Icons.Default.CheckCircle, "Aktiv", tint = Color(0xFF4CAF50))
+                        } else {
+                            Button(
+                                onClick = { context.startActivity(com.example.permissions.SpecialPermissionsHelper.getNotificationListenerSettingsIntent()) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), contentColor = MaterialTheme.colorScheme.primary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Aktivieren", fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                    // Usage Stats Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Nutzungsdaten-Zugriff", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Agent sieht, welche App offen ist", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (com.example.permissions.SpecialPermissionsHelper.isUsageStatsEnabled(context)) {
+                            Icon(Icons.Default.CheckCircle, "Aktiv", tint = Color(0xFF4CAF50))
+                        } else {
+                            Button(
+                                onClick = { context.startActivity(com.example.permissions.SpecialPermissionsHelper.getUsageStatsSettingsIntent()) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), contentColor = MaterialTheme.colorScheme.primary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Aktivieren", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // --- System Access (Debugging / Admin) ---
         item {
             val context = androidx.compose.ui.platform.LocalContext.current
