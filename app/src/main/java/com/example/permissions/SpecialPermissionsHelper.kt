@@ -66,6 +66,31 @@ object SpecialPermissionsHelper {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
+    /**
+     * Checks if System Alert Window (Overlay) is enabled.
+     */
+    fun canDrawOverlays(context: Context): Boolean {
+        return Settings.canDrawOverlays(context)
+    }
+
+    /**
+     * Checks if Write Settings is enabled.
+     */
+    fun canWriteSettings(context: Context): Boolean {
+        return Settings.System.canWrite(context)
+    }
+
+    /**
+     * Checks if Manage External Storage is enabled.
+     */
+    fun isExternalStorageManager(): Boolean {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            android.os.Environment.isExternalStorageManager()
+        } else {
+            true // Below Android 11, standard read/write permissions are enough
+        }
+    }
+
     /** Intents to open the respective settings pages **/
 
     fun getAccessibilitySettingsIntent(): Intent {
@@ -83,6 +108,30 @@ object SpecialPermissionsHelper {
     fun getUsageStatsSettingsIntent(): Intent {
         return Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+    }
+
+    fun getOverlaySettingsIntent(context: Context): Intent {
+        return Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:${context.packageName}")).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+    }
+
+    fun getWriteSettingsIntent(context: Context): Intent {
+        return Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, android.net.Uri.parse("package:${context.packageName}")).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+    }
+
+    fun getManageStorageIntent(context: Context): Intent {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, android.net.Uri.parse("package:${context.packageName}")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+        } else {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${context.packageName}")).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
         }
     }
 }

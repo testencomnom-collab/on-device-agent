@@ -38,6 +38,30 @@ enum class AgentPermission(
     GET_ACCOUNTS(
         android.Manifest.permission.GET_ACCOUNTS,
         "Read your device accounts for email integration"
+    ),
+    RECORD_AUDIO(
+        android.Manifest.permission.RECORD_AUDIO,
+        "Record audio for voice commands and dictation"
+    ),
+    CAMERA(
+        android.Manifest.permission.CAMERA,
+        "Access camera for computer vision and image analysis"
+    ),
+    CALL_PHONE(
+        android.Manifest.permission.CALL_PHONE,
+        "Make phone calls on your behalf"
+    ),
+    READ_CALL_LOG(
+        android.Manifest.permission.READ_CALL_LOG,
+        "Read call history for smart call management"
+    ),
+    BLUETOOTH_CONNECT(
+        android.Manifest.permission.BLUETOOTH_CONNECT,
+        "Connect to Bluetooth devices (Smart Home etc.)"
+    ),
+    READ_EXTERNAL_STORAGE(
+        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+        "Read files from your device storage"
     )
 }
 

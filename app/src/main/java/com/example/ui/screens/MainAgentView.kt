@@ -1793,6 +1793,48 @@ fun AgentSettingsTab(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 
+                    // Audio permission row
+                    PermissionItemRow(
+                        title = "Mikrofon-Zugriff",
+                        description = "Erlaubt Sprachsteuerung und Diktierfunktion.",
+                        hasPermission = permissionsManager.isGranted(AgentPermission.RECORD_AUDIO),
+                        onRequest = {
+                            coroutineScope.launch {
+                                permissionsManager.requestPermissions(AgentPermission.RECORD_AUDIO)
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                    // Camera permission row
+                    PermissionItemRow(
+                        title = "Kamera-Zugriff",
+                        description = "Für Bildanalyse und Computer Vision Features.",
+                        hasPermission = permissionsManager.isGranted(AgentPermission.CAMERA),
+                        onRequest = {
+                            coroutineScope.launch {
+                                permissionsManager.requestPermissions(AgentPermission.CAMERA)
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                    // Phone permission row
+                    PermissionItemRow(
+                        title = "Telefon-Anrufe",
+                        description = "Erlaubt das Tätigen von Anrufen und Lesen der Historie.",
+                        hasPermission = permissionsManager.isGranted(AgentPermission.CALL_PHONE),
+                        onRequest = {
+                            coroutineScope.launch {
+                                permissionsManager.requestPermissions(AgentPermission.CALL_PHONE, AgentPermission.READ_CALL_LOG)
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
                     // Accounts permission row
                     PermissionItemRow(
                         title = "Geräte-Konten-Zugriff",
@@ -1823,8 +1865,7 @@ fun AgentSettingsTab(
                         Icon(
                             Icons.Default.Android,
                             contentDescription = "Deep System",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -1836,6 +1877,45 @@ fun AgentSettingsTab(
                     }
                     
                     Spacer(modifier = Modifier.height(6.dp))
+
+                    // System Alert Window Row
+                    val hasOverlay = remember { mutableStateOf(SpecialPermissionsHelper.canDrawOverlays(context)) }
+                    SpecialPermissionItemRow(
+                        title = "Über anderen Apps einblenden",
+                        description = "Der Agent kann als schwebende Blase überall angezeigt werden.",
+                        hasPermission = hasOverlay.value,
+                        onOpenSettings = {
+                            context.startActivity(SpecialPermissionsHelper.getOverlaySettingsIntent(context))
+                        }
+                    )
+                    
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                    // Write Settings Row
+                    val hasWriteSettings = remember { mutableStateOf(SpecialPermissionsHelper.canWriteSettings(context)) }
+                    SpecialPermissionItemRow(
+                        title = "Systemeinstellungen ändern",
+                        description = "Der Agent kann WLAN, Bluetooth, Helligkeit etc. steuern.",
+                        hasPermission = hasWriteSettings.value,
+                        onOpenSettings = {
+                            context.startActivity(SpecialPermissionsHelper.getWriteSettingsIntent(context))
+                        }
+                    )
+                    
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                    // Manage Storage Row
+                    val hasManageStorage = remember { mutableStateOf(SpecialPermissionsHelper.isExternalStorageManager()) }
+                    SpecialPermissionItemRow(
+                        title = "Voller Speicherzugriff",
+                        description = "Erlaubt das Lesen und Schreiben aller Dateien auf dem Gerät.",
+                        hasPermission = hasManageStorage.value,
+                        onOpenSettings = {
+                            context.startActivity(SpecialPermissionsHelper.getManageStorageIntent(context))
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
 
                     // Accessibility Row
                     Row(
