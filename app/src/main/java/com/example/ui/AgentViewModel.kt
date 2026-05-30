@@ -259,6 +259,10 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
                         put("calendarStart", proposal.calendarStartMillis)
                         put("calendarEnd", proposal.calendarEndMillis)
                     }
+                    if (proposal.systemActionApp != null) {
+                        put("systemActionApp", proposal.systemActionApp)
+                        put("systemActionInstruction", proposal.systemActionInstruction ?: "")
+                    }
                 }
                 actionDataJson = actionObj.toString()
             }
@@ -344,14 +348,104 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
 
                 // Executing System Action Block
                 if (type == "SYSTEM_ACTION" || type == "BOTH") {
-                    val sysApp = json.optString("systemActionApp")
+                    val sysApp = json.optString("systemActionApp", "")
+                    val sysInstruction = json.optString("systemActionInstruction", "")
                     if (sysApp.isNotEmpty()) {
-                        Toast.makeText(
-                            getApplication(),
-                            "Executing Deep System Automation for: $sysApp...",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        // Note: actual accessibility service injection would happen here
+                        val app = getApplication<Application>()
+                        val pm = app.packageManager
+
+                        // Map common app names to package names
+                        val packageMap = mapOf(
+                            "snapchat" to "com.snapchat.android",
+                            "whatsapp" to "com.whatsapp",
+                            "instagram" to "com.instagram.android",
+                            "telegram" to "org.telegram.messenger",
+                            "tiktok" to "com.zhiliaoapp.musically",
+                            "twitter" to "com.twitter.android",
+                            "x" to "com.twitter.android",
+                            "discord" to "com.discord",
+                            "signal" to "org.thoughtcrime.securesms",
+                            "facebook" to "com.facebook.katana",
+                            "messenger" to "com.facebook.orca",
+                            "youtube" to "com.google.android.youtube",
+                            "spotify" to "com.spotify.music",
+                            "chrome" to "com.android.chrome",
+                            "gmail" to "com.google.android.gm",
+                            "maps" to "com.google.android.apps.maps",
+                            "camera" to "com.android.camera",
+                            "settings" to "com.android.settings",
+                            "clock" to "com.android.deskclock",
+                            "calculator" to "com.android.calculator2",
+                            "phone" to "com.android.dialer",
+                            "contacts" to "com.android.contacts",
+                            "calendar" to "com.google.android.calendar",
+                            "files" to "com.google.android.apps.nbu.files",
+                            "notes" to "com.google.android.keep"
+                        )
+
+                        val targetPackage = packageMap[sysApp.lowercase().trim()]
+
+                        if (targetPackage != null) {
+                            try {
+                                // Try to send content via share intent for messaging apps
+                                val messagingApps = setOf(
+                                    "com.snapchat.android", "com.whatsapp", "com.instagram.android",
+                                    "org.telegram.messenger", "com.discord", "org.thoughtcrime.securesms",
+                                    "com.facebook.orca", "com.twitter.android"
+                                )
+
+                                if (targetPackage in messagingApps && sysInstruction.isNotEmpty()) {
+                                    // Use share intent to send text to the app
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        setType("text/plain")
+                                        setPackage(targetPackage)
+                                        putExtra(Intent.EXTRA_TEXT, sysInstruction)
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    try {
+                                        app.startActivity(shareIntent)
+                                        Toast.makeText(app, "Opening $sysApp with message...", Toast.LENGTH_LONG).show()
+                                    } catch (e: Exception) {
+                                        // Fallback: just open the app
+                                        val launchIntent = pm.getLaunchIntentForPackage(targetPackage)
+                                        if (launchIntent != null) {
+                                            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            app.startActivity(launchIntent)
+                                            Toast.makeText(app, "Opened $sysApp (send message manually)", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                } else {
+                                    // Just open the app
+                                    val launchIntent = pm.getLaunchIntentForPackage(targetPackage)
+                                    if (launchIntent != null) {
+                                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        app.startActivity(launchIntent)
+                                        Toast.makeText(app, "Opened $sysApp", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(app, "$sysApp is not installed on this device.", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("AgentViewModel", "Failed to launch $sysApp", e)
+                                Toast.makeText(app, "Could not open $sysApp: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                        } else {
+                            // Try to find the app by searching installed packages
+                            val installed = pm.getInstalledApplications(0)
+                            val match = installed.find {
+                                pm.getApplicationLabel(it).toString().equals(sysApp, ignoreCase = true)
+                            }
+                            if (match != null) {
+                                val launchIntent = pm.getLaunchIntentForPackage(match.packageName)
+                                if (launchIntent != null) {
+                                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    app.startActivity(launchIntent)
+                                    Toast.makeText(app, "Opened $sysApp", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(app, "App '$sysApp' not found on device.", Toast.LENGTH_LONG).show()
+                            }
+                        }
                     }
                 }
 

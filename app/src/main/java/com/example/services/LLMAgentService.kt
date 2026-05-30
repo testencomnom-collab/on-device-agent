@@ -190,11 +190,12 @@ class LLMAgentService(
             Based on the user's request, perform the necessary agent tasks. 
             - If they ask to reply to or draft an email, compose the email response (recipient, subject, body).
             - If they ask to schedule an event or meeting, analyze their calendar availability to find an open date/time that DOES NOT conflict with existing events.
-            - If they ask to interact with an app (like Snapchat, WhatsApp, Instagram), or perform a deep system task, use a "SYSTEM_ACTION" to describe the sequence of accessibility/UI actions needed.
+            - If they ask to send a message via an app (Snapchat, WhatsApp, Instagram, Telegram, Discord, etc.), use "SYSTEM_ACTION". Put the app name in "targetApp" and the ACTUAL MESSAGE TEXT they want to send in "instruction". Do NOT put UI navigation steps - just put the message content itself.
+            - If they ask to open any app, use "SYSTEM_ACTION" with the app name in "targetApp" and leave "instruction" empty.
             
             You MUST return your entire output as a strictly valid, parsable JSON object. Do not include any markdown backticks, explanations outside the JSON, or leading/trailing text. The JSON structure MUST be:
             {
-               "thought": "Describe your step-by-step reasoning about calendar availability, email creation, or system UI actions",
+               "thought": "Describe your step-by-step reasoning",
                "responseText": "Interactive assistant message detailing what actions are drafted or performed",
                "hasAction": true/false,
                "actionType": "EMAIL" or "CALENDAR" or "SYSTEM_ACTION" or "NONE",
@@ -210,8 +211,8 @@ class LLMAgentService(
                   "endTimeIso": "ISO-8601 date string of proposed event (e.g., '2026-05-30T11:00:00')"
                },
                "systemAction": {
-                  "targetApp": "Name of the app (e.g., 'Snapchat')",
-                  "instruction": "Detailed instruction of what UI elements to click or text to type"
+                  "targetApp": "Simple app name like 'Snapchat', 'WhatsApp', 'Instagram', 'Telegram', 'Discord', 'YouTube', 'Chrome', 'Settings', 'Camera', 'TikTok', 'Spotify'",
+                  "instruction": "The actual message text to send, or empty string if just opening the app"
                }
             }
             
