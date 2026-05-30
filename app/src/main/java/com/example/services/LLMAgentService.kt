@@ -317,4 +317,11 @@ class LLMAgentService(
             )
         }
     }
+
+    fun close() {
+        if (isLocalEngineReady) {
+            localEngine.close()
+            isLocalEngineReady = false
+        }
+    }
 }

@@ -535,9 +535,10 @@ fun AgentChatTab(
                 OutlinedTextField(
                     value = inputQuery,
                     onValueChange = { inputQuery = it },
+                    enabled = !isLoading,
                     placeholder = { 
                         Text(
-                            "Automatisierungs-Befehl eingeben...", 
+                            if (isLoading) "Agent generiert Antwort..." else "Automatisierungs-Befehl eingeben...", 
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), 
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -554,7 +555,8 @@ fun AgentChatTab(
                         unfocusedContainerColor = Color.Transparent,
                         cursorColor = MaterialTheme.colorScheme.primary,
                         focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     ),
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Send,
@@ -562,7 +564,7 @@ fun AgentChatTab(
                     ),
                     keyboardActions = KeyboardActions(
                         onSend = {
-                            if (inputQuery.trim().isNotEmpty()) {
+                            if (inputQuery.trim().isNotEmpty() && !isLoading) {
                                 viewModel.sendMessage(inputQuery)
                                 inputQuery = ""
                                 keyboardController?.hide()
@@ -573,22 +575,27 @@ fun AgentChatTab(
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
                     onClick = {
-                        if (inputQuery.trim().isNotEmpty()) {
+                        if (inputQuery.trim().isNotEmpty() && !isLoading) {
                             viewModel.sendMessage(inputQuery)
                             inputQuery = ""
                             keyboardController?.hide()
                         }
                     },
+                    enabled = !isLoading && inputQuery.trim().isNotEmpty(),
                     modifier = Modifier
                         .size(44.dp)
                         .clip(RoundedCornerShape(percent = 50))
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(
+                            if (inputQuery.trim().isNotEmpty() && !isLoading) MaterialTheme.colorScheme.primary 
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                        )
                         .testTag("chat_send_button")
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Senden",
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = if (inputQuery.trim().isNotEmpty() && !isLoading) MaterialTheme.colorScheme.onPrimary 
+                               else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                         modifier = Modifier.size(20.dp)
                     )
                 }

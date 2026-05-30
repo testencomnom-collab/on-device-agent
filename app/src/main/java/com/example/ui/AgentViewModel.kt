@@ -19,8 +19,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -62,10 +65,9 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
     init {
         // Seed some starter emails for the simulated Inbox if empty
         viewModelScope.launch {
-            repository.allEmails.collect { list ->
-                if (list.isEmpty()) {
-                    seedInbox()
-                }
+            val list = repository.allEmails.first()
+            if (list.isEmpty()) {
+                seedInbox()
             }
         }
     }
@@ -129,9 +131,11 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
             kotlinx.coroutines.delay(1000)
             
             try {
-                val dummyFile = java.io.File(getApplication<Application>().filesDir, "local_model_gemma_2b.bin")
-                if (!dummyFile.exists()) {
-                    dummyFile.writeText("DUMMY_WEIGHTS")
+                withContext(Dispatchers.IO) {
+                    val dummyFile = java.io.File(getApplication<Application>().filesDir, "local_model_gemma_2b.bin")
+                    if (!dummyFile.exists()) {
+                        dummyFile.writeText("DUMMY_WEIGHTS")
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -179,7 +183,7 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun sendMessage(query: String) {
-        if (query.trim().isEmpty()) return
+        if (query.trim().isEmpty() || isLoading.value) return
 
         viewModelScope.launch {
             isLoading.value = true
@@ -232,69 +236,69 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
     fun executeProposedAction(message: ChatMessage) {
         if (!message.hasAction || message.actionData == null) return
 
-        try {
-            val json = JSONObject(message.actionData)
-            val type = json.optString("type", "NONE")
+        viewModelScope.launch {
+            try {
+                val json = JSONObject(message.actionData)
+                val type = json.optString("type", "NONE")
 
-            var calendarSuccess = true
-            var emailIntended = false
-            
-            val rec = json.optString("emailRecipient")
-            val subj = json.optString("emailSubject")
-            val body = json.optString("emailBody")
+                var calendarSuccess = true
+                
+                val rec = json.optString("emailRecipient")
+                val subj = json.optString("emailSubject")
+                val body = json.optString("emailBody")
 
-            // Executing Calendar Block
-            if (type == "CALENDAR" || type == "BOTH") {
-                val calTitle = json.optString("calendarTitle")
-                val calDesc = json.optString("calendarDesc")
-                val start = json.optLong("calendarStart", 0L)
-                val end = json.optLong("calendarEnd", 0L)
+                // Executing Calendar Block
+                if (type == "CALENDAR" || type == "BOTH") {
+                    val calTitle = json.optString("calendarTitle")
+                    val calDesc = json.optString("calendarDesc")
+                    val start = json.optLong("calendarStart", 0L)
+                    val end = json.optLong("calendarEnd", 0L)
 
-                if (calTitle.isNotEmpty() && start > 0L && end > start) {
-                    val uri = CalendarManager.insertEvent(
-                        context = getApplication(),
-                        title = calTitle,
-                        description = calDesc,
-                        startMillis = start,
-                        endMillis = end
-                    )
-                    if (uri != null) {
-                        val sdf = SimpleDateFormat("h:mm a (MMM d)", Locale.getDefault())
-                        Toast.makeText(
-                            getApplication(),
-                            "Scheduled event: \"$calTitle\" at ${sdf.format(Date(start))}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } else {
-                        calendarSuccess = false
-                        Toast.makeText(
-                            getApplication(),
-                            "Failed to write to calendar. Check runtime permissions inside System Settings.",
-                            Toast.LENGTH_LONG
-                        ).show()
+                    if (calTitle.isNotEmpty() && start > 0L && end > start) {
+                        val uri = withContext(Dispatchers.IO) {
+                            CalendarManager.insertEvent(
+                                context = getApplication(),
+                                title = calTitle,
+                                description = calDesc,
+                                startMillis = start,
+                                endMillis = end
+                            )
+                        }
+                        if (uri != null) {
+                            val sdf = SimpleDateFormat("h:mm a (MMM d)", Locale.getDefault())
+                            Toast.makeText(
+                                getApplication(),
+                                "Scheduled event: \"$calTitle\" at ${sdf.format(Date(start))}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            calendarSuccess = false
+                            Toast.makeText(
+                                getApplication(),
+                                "Failed to write to calendar. Check runtime permissions inside System Settings.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                 }
-            }
 
-            // Executing Email Block
-            if (type == "EMAIL" || type == "BOTH") {
-                if (rec.isNotEmpty()) {
-                    emailIntended = true
-                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                        data = Uri.parse("mailto:")
-                        putExtra(Intent.EXTRA_EMAIL, arrayOf(rec))
-                        putExtra(Intent.EXTRA_SUBJECT, subj)
-                        putExtra(Intent.EXTRA_TEXT, body)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                // Executing Email Block
+                if (type == "EMAIL" || type == "BOTH") {
+                    if (rec.isNotEmpty()) {
+                        val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:")
+                            putExtra(Intent.EXTRA_EMAIL, arrayOf(rec))
+                            putExtra(Intent.EXTRA_SUBJECT, subj)
+                            putExtra(Intent.EXTRA_TEXT, body)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        getApplication<Application>().startActivity(emailIntent)
+                        Toast.makeText(getApplication(), "Opening email composer draft...", Toast.LENGTH_SHORT).show()
                     }
-                    getApplication<Application>().startActivity(emailIntent)
-                    Toast.makeText(getApplication(), "Opening email composer draft...", Toast.LENGTH_SHORT).show()
                 }
-            }
 
-            // Mark action executed in DB if calendar succeeds or email composer launched
-            if (calendarSuccess) {
-                viewModelScope.launch {
+                // Mark action executed in DB if calendar succeeds or email composer launched
+                if (calendarSuccess) {
                     repository.markActionExecuted(message.id)
                     
                     // Add secondary notification message to history
@@ -310,11 +314,11 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
                     )
                     repository.insertMessage(updateMsg)
                 }
-            }
 
-        } catch (e: Exception) {
-            Log.e("AgentViewModel", "Failed to execute proposed action", e)
-            Toast.makeText(getApplication(), "Failed to execute schedule action: ${e.message}", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Log.e("AgentViewModel", "Failed to execute proposed action", e)
+                Toast.makeText(getApplication(), "Failed to execute schedule action: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -344,5 +348,10 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
             repository.clearInbox()
             statusMessage.value = "Inbox cleared."
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        agentService.close()
     }
 }

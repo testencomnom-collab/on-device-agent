@@ -9,7 +9,7 @@ import java.io.File
 class LocalInferenceEngine(private val context: Context) {
     
     private var llmInference: LlmInference? = null
-    private var isUsingDummyModel = false
+    @Volatile private var isUsingDummyModel = false
     
     suspend fun initialize(modelName: String = "local_model_gemma_2b.bin"): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -33,7 +33,7 @@ class LocalInferenceEngine(private val context: Context) {
                 
             llmInference = LlmInference.createFromOptions(context, options)
             true
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
             // Fallback for simulation if MediaPipe crashes with invalid weights
             isUsingDummyModel = true
@@ -52,7 +52,7 @@ class LocalInferenceEngine(private val context: Context) {
                 ?: return@withContext "Fehler: Die lokale MediaPipe Engine wurde nicht korrekt initialisiert."
             
             inference.generateResponse(prompt)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
             "Fehler bei der lokalen On-Device Generierung: ${e.message}"
         }
