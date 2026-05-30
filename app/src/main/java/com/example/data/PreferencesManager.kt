@@ -75,8 +75,8 @@ class PreferencesManager(context: Context) {
         if (model.isNotEmpty()) return model
         return when (activeProvider) {
             "OPENAI" -> "gpt-4o"
-            "ANTHROPIC" -> "claude-3-5-sonnet-latest"
-            "GEMINI" -> "gemini-1.5-pro-latest"
+            "ANTHROPIC" -> "claude-4-6-sonnet"
+            "GEMINI" -> "gemini-2.5-flash"
             else -> ""
         }
     }
