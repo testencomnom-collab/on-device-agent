@@ -32,3 +32,7 @@
 # Coroutines
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+
+# MediaPipe & AutoValue (R8 Fix)
+-dontwarn com.google.auto.value.**
+-keep class com.google.mediapipe.** { *; }
