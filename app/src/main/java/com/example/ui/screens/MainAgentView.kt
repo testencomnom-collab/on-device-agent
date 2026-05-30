@@ -545,9 +545,20 @@ fun AgentChatTab(
                 }
             } else {
                 items(items = chatHistory, key = { it.id }) { message ->
-                    ChatMessageBubble(message, onExecuteAction = {
-                        viewModel.executeProposedAction(message)
-                    })
+                    var isVisible by remember { mutableStateOf(false) }
+                    LaunchedEffect(message.id) { isVisible = true }
+                    
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isVisible,
+                        enter = androidx.compose.animation.slideInVertically(
+                            initialOffsetY = { 50 },
+                            animationSpec = tween(durationMillis = 300)
+                        ) + androidx.compose.animation.fadeIn(animationSpec = tween(durationMillis = 300))
+                    ) {
+                        ChatMessageBubble(message, onExecuteAction = {
+                            viewModel.executeProposedAction(message)
+                        })
+                    }
                 }
             }
 
@@ -748,6 +759,7 @@ fun ChatMessageBubble(
                     )
                     .padding(14.dp)
             ) {
+                val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
                 Column {
                     // Message Text
                     Text(
@@ -756,6 +768,27 @@ fun ChatMessageBubble(
                         fontSize = 14.sp,
                         lineHeight = 20.sp
                     )
+
+                    if (!isUser) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            IconButton(
+                                onClick = { 
+                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(message.message)) 
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Kopieren",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
 
                     // Assistant Thoughts scratchpad
                     if (!isUser && !message.thought.isNullOrEmpty()) {
@@ -2314,22 +2347,22 @@ private fun formatTime(timestamp: Long): String {
 @Composable
 fun TypingIndicatorBubble() {
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
-    val dot1Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f, targetValue = 1f,
+    val dot1Offset by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = -10f,
         animationSpec = infiniteRepeatable(
             animation = tween(400, delayMillis = 0, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ), label = "dot1"
     )
-    val dot2Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f, targetValue = 1f,
+    val dot2Offset by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = -10f,
         animationSpec = infiniteRepeatable(
             animation = tween(400, delayMillis = 200, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ), label = "dot2"
     )
-    val dot3Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f, targetValue = 1f,
+    val dot3Offset by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = -10f,
         animationSpec = infiniteRepeatable(
             animation = tween(400, delayMillis = 400, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
@@ -2344,8 +2377,8 @@ fun TypingIndicatorBubble() {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = dot1Alpha)))
-        Box(modifier = Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = dot2Alpha)))
-        Box(modifier = Modifier.size(6.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = dot3Alpha)))
+        Box(modifier = Modifier.offset(y = dot1Offset.dp).size(6.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary))
+        Box(modifier = Modifier.offset(y = dot2Offset.dp).size(6.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary))
+        Box(modifier = Modifier.offset(y = dot3Offset.dp).size(6.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary))
     }
 }
