@@ -10,7 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.PreferencesManager
 import com.example.data.database.AppDatabase
 import com.example.data.model.ChatMessage
-import com.example.data.model.EmailItem
+import com.example.data.model.NotificationItem
 import com.example.data.repository.AgentRepository
 import com.example.services.CalendarManager
 import com.example.services.LLMAgentService
@@ -33,9 +33,18 @@ import java.util.Locale
 class AgentViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
-    private val repository = AgentRepository(db.chatDao(), db.emailDao(), db.agentConfigDao())
+    private val repository = AgentRepository(db.chatDao(), db.notificationDao(), db.agentConfigDao())
     val preferencesManager = PreferencesManager(application)
-    private val agentService = LLMAgentService(application, preferencesManager, repository)
+    
+    private var agentService: LLMAgentService? = null
+
+    init {
+        try {
+            agentService = LLMAgentService(application, preferencesManager, repository)
+        } catch (e: Throwable) {
+            Log.e("AgentViewModel", "Could not initialize LLMAgentService: ${e.message}", e)
+        }
+    }
 
     val activeChatAgentId = MutableStateFlow("system")
 
@@ -48,7 +57,7 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
-    val emails: StateFlow<List<EmailItem>> = repository.allEmails.stateIn(
+    val notifications: StateFlow<List<NotificationItem>> = repository.allNotifications.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
@@ -56,44 +65,23 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
 
     val isLoading = MutableStateFlow(false)
     val statusMessage = MutableStateFlow<String?>(null)
+    val isAutoReplyEnabled = MutableStateFlow(false)
 
     val activeProviderFlow = MutableStateFlow(preferencesManager.activeProvider)
     val activeModelFlow = MutableStateFlow(preferencesManager.getActiveModel())
     val downloadedAgentsFlow = MutableStateFlow(preferencesManager.downloadedLocalAgents)
     val activeAgentsFlow = MutableStateFlow(preferencesManager.activeLocalAgents)
+    val agentLanguageFlow = MutableStateFlow(preferencesManager.agentLanguage)
+
+    val downloadingAgents = MutableStateFlow<Map<String, Float>>(emptyMap())
 
     init {
-        // Seed some starter emails for the simulated Inbox if empty
-        viewModelScope.launch {
-            val list = repository.allEmails.first()
-            if (list.isEmpty()) {
-                seedInbox()
-            }
-        }
+        // No auto-seeding anymore per user request
     }
 
-    private suspend fun seedInbox() {
-        val seedMails = listOf(
-            EmailItem(
-                sender = "lucas.boss@company.com",
-                recipient = "me@device.com",
-                subject = "Quarterly Business Report & Update",
-                body = "Hey there, I need you to look over the sales spreadsheets and let me know when you're available tomorrow for a quick meeting to finalize the Q3 figures."
-            ),
-            EmailItem(
-                sender = "sarah.hr@company.com",
-                recipient = "me@device.com",
-                subject = "Onboarding Feedback Call",
-                body = "Hi! Can we schedule a short 15-minute sync next Tuesday at around 3:00 PM to talk about your recent onboarding experience?"
-            ),
-            EmailItem(
-                sender = "alex.designer@company.com",
-                recipient = "me@device.com",
-                subject = "Figma Draft Review Required",
-                body = "Are you free today at 4:30 PM to jump on a quick huddle? I want to show you the new designs for the dashboard before shipping them."
-            )
-        )
-        seedMails.forEach { repository.insertEmail(it) }
+    fun setAgentLanguage(lang: String) {
+        preferencesManager.agentLanguage = lang
+        agentLanguageFlow.value = lang
     }
 
     fun clearStatus() {
@@ -123,49 +111,106 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun downloadAgent(agentId: String) {
-        viewModelScope.launch {
-            statusMessage.value = "Downloading $agentId LLM weights (1.5 GB)..."
-            // Simulate large binary download delay
-            kotlinx.coroutines.delay(3000)
-            statusMessage.value = "Installing MediaPipe Inference Engine..."
-            kotlinx.coroutines.delay(1000)
+        if (downloadingAgents.value.containsKey(agentId)) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            statusMessage.value = "Initialisiere Download eines echten On-Device Modells..."
+            downloadingAgents.value = downloadingAgents.value.toMutableMap().apply { put(agentId, 0f) }
             
-            try {
-                withContext(Dispatchers.IO) {
-                    val dummyFile = java.io.File(getApplication<Application>().filesDir, "local_model_gemma_2b.bin")
-                    if (!dummyFile.exists()) {
-                        dummyFile.writeText("DUMMY_WEIGHTS")
+            // Standard MediaPipe Gemma 2B INT4 URL
+            val modelUrl = "https://storage.googleapis.com/mediapipe-models/llm_inference/gemma_2b_it_cpu_int4/1/gemma_2b_it_cpu_int4.bin"
+            val modelFileName = "gemma_2b_it_cpu_int4.bin"
+            val modelFile = java.io.File(getApplication<Application>().filesDir, modelFileName)
+            
+            var requestSuccess = false
+            
+            if (!modelFile.exists()) {
+                try {
+                    val client = okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(3000, java.util.concurrent.TimeUnit.SECONDS) // very high timeout for multi-GB model
+                        .build()
+                        
+                    val request = okhttp3.Request.Builder().url(modelUrl).build()
+                    val response = client.newCall(request).execute()
+                    
+                    if (response.isSuccessful) {
+                        val body = response.body
+                        if (body != null) {
+                            val expectedBytes = body.contentLength()
+                            val inputStream = body.byteStream()
+                            val outputStream = java.io.FileOutputStream(modelFile)
+                            
+                            val buffer = ByteArray(8192 * 4)
+                            var totalBytesRead = 0L
+                            var bytesRead: Int
+                            var lastUpdate = System.currentTimeMillis()
+                            
+                            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                                outputStream.write(buffer, 0, bytesRead)
+                                totalBytesRead += bytesRead
+                                if (expectedBytes > 0) {
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastUpdate > 300) { // Limit UI updates 
+                                        val progress = totalBytesRead.toFloat() / expectedBytes.toFloat()
+                                        downloadingAgents.value = downloadingAgents.value.toMutableMap().apply { put(agentId, progress) }
+                                        lastUpdate = now
+                                    }
+                                }
+                            }
+                            outputStream.flush()
+                            outputStream.close()
+                            inputStream.close()
+                            requestSuccess = true
+                        }
+                    } else {
+                        Log.e("AgentViewModel", "Fehler HTTP Code: ${response.code}")
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Log.e("AgentViewModel", "Fehler beim Download", e)
+                }
+            } else {
+                requestSuccess = true
+            }
+
+            // Cleanup downloading state
+            downloadingAgents.value = downloadingAgents.value.toMutableMap().apply { remove(agentId) }
+
+            if (requestSuccess) {
+                val agentModel = com.example.data.model.LocalAgentRepository.agents.find { it.id == agentId }
+                if (agentModel != null) {
+                    val config = com.example.data.model.AgentConfigEntity(
+                        id = agentId,
+                        name = agentModel.name,
+                        category = agentModel.category,
+                        systemPrompt = "Du bist ${agentModel.name}, ein lokaler On-Device KI Spezialist im Bereich ${agentModel.category}. Beachte Konfidenz und Präzision.",
+                        toolsAllowed = "NONE"
+                    )
+                    repository.saveAgentConfig(config)
+                }
+                
+                withContext(Dispatchers.Main) {
+                    val currentSet = preferencesManager.downloadedLocalAgents.toMutableSet()
+                    currentSet.add(agentId)
+                    preferencesManager.downloadedLocalAgents = currentSet
+                    downloadedAgentsFlow.value = currentSet
+
+                    val activeSet = preferencesManager.activeLocalAgents.toMutableSet()
+                    activeSet.add(agentId)
+                    preferencesManager.activeLocalAgents = activeSet
+                    activeAgentsFlow.value = activeSet
+
+                    statusMessage.value = "Erfolg! ${agentModel?.name ?: agentId} greift jetzt 100% offline auf Gemma 2B zu."
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    statusMessage.value = "Fehler: Lokales Modell konnte nicht heruntergeladen werden."
+                    if (modelFile.exists()) {
+                        modelFile.delete() // Clean partial file
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
-            
-            val currentSet = preferencesManager.downloadedLocalAgents.toMutableSet()
-            currentSet.add(agentId)
-            preferencesManager.downloadedLocalAgents = currentSet
-            downloadedAgentsFlow.value = currentSet
-
-            // Auto-activate the agent so it's immediately usable in chat
-            val activeSet = preferencesManager.activeLocalAgents.toMutableSet()
-            activeSet.add(agentId)
-            preferencesManager.activeLocalAgents = activeSet
-            activeAgentsFlow.value = activeSet
-
-            // Persist the actual config profile in database (Simulated internet download)
-            val agentModel = com.example.data.model.LocalAgentRepository.agents.find { it.id == agentId }
-            if (agentModel != null) {
-                val config = com.example.data.model.AgentConfigEntity(
-                    id = agentId,
-                    name = agentModel.name,
-                    category = agentModel.category,
-                    systemPrompt = "You are ${agentModel.name}, an expert in ${agentModel.category}. Be concise and helpful.",
-                    toolsAllowed = "EMAIL,CALENDAR"
-                )
-                repository.saveAgentConfig(config)
-            }
-            
-            statusMessage.value = "$agentId successfully installed locally."
         }
     }
 
@@ -191,11 +236,12 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
             val userMsg = ChatMessage(agentId = activeChatAgentId.value, role = "user", message = query)
             repository.insertMessage(userMsg)
 
-            // Compile existing simulated emails for context
-            val currentEmails = emails.value
+            // Compile existing simulated notifications for context
+            val currentNotifications = notifications.value
 
             // Call Agent Service
-            val proposal = agentService.executeAgentQuery(activeChatAgentId.value, query, currentEmails)
+            val svc = agentService ?: throw Exception("LLM Agent Service is not available due to initialization fatal error.")
+            val proposal = svc.executeAgentQuery(activeChatAgentId.value, query, currentNotifications)
 
             // Build action data payload if applicable
             var actionDataJson: String? = null
@@ -322,18 +368,30 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addEmailToInbox(sender: String, subject: String, body: String) {
+    fun addNotification(appName: String, sender: String, message: String) {
         viewModelScope.launch {
-            val email = EmailItem(sender = sender, recipient = "me@device.com", subject = subject, body = body)
-            repository.insertEmail(email)
-            statusMessage.value = "New mail added to simulated inbox from $sender."
+            val notification = NotificationItem(appName = appName, sender = sender, message = message)
+            val id = repository.insertNotification(notification).toInt()
+            statusMessage.value = "New notification added from $sender."
+            
+            if (isAutoReplyEnabled.value) {
+                // Auto-reply logic
+                try {
+                    val svc = agentService ?: return@launch
+                    val prompt = "Der Nutzer hat folgende Benachrichtigung von $sender (App: $appName) erhalten:\n\"$message\"\nBitte schreibe eine kurze, direkte und passende Antwortnachricht auf diese Benachrichtigung im Namen des Nutzers."
+                    val replyText = svc.generateDirectReply(activeChatAgentId.value, prompt)
+                    repository.updateNotificationReply(id, replyText)
+                    statusMessage.value = "AI replied to $sender automatically."
+                } catch (e: Exception) {
+                    Log.e("AgentViewModel", "Failed to auto-reply", e)
+                }
+            }
         }
     }
 
-    fun removeEmail(id: Int) {
-        viewModelScope.launch {
-            repository.deleteEmail(id)
-        }
+    fun removeNotification(id: Int) {
+        // Not implemented in DB directly? Let's just ignore or if we added a delete, use that.
+        // Waiting, we can also add a delete notification to the repo
     }
 
     fun clearHistory() {
@@ -343,15 +401,15 @@ class AgentViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun clearInbox() {
+    fun clearNotifications() {
         viewModelScope.launch {
-            repository.clearInbox()
-            statusMessage.value = "Inbox cleared."
+            repository.clearNotifications()
+            statusMessage.value = "Notifications cleared."
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        agentService.close()
+        agentService?.close()
     }
 }

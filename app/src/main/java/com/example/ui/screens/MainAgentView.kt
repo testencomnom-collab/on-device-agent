@@ -33,6 +33,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -49,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.ChatMessage
-import com.example.data.model.EmailItem
+import com.example.data.model.NotificationItem
 import com.example.data.model.LocalAgentRepository
 import com.example.services.CalendarEvent
 import com.example.services.CalendarManager
@@ -60,6 +61,24 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
+
+@Composable
+fun AnimatedLiquidBackground(modifier: Modifier = Modifier) {
+    val color1 = Color(0xFF100F17)
+    val color2 = Color(0xFF1E1432)
+    val color3 = Color(0xFF152A34)
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(color1, color2, color3, color1)
+                )
+            )
+            .background(Color.Black.copy(alpha = 0.2f))
+    )
+}
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,11 +114,112 @@ fun MainAgentView(
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                modifier = Modifier.testTag("bottom_nav_bar")
+    var showSystemWarning by remember { mutableStateOf(false) }
+    
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                val isDebugApp = try {
+                    android.provider.Settings.Global.getString(context.contentResolver, android.provider.Settings.Global.DEBUG_APP) == context.packageName
+                } catch (e: Exception) { false }
+                
+                val dpm = context.getSystemService(android.content.Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+                val isAdmin = dpm.isAdminActive(android.content.ComponentName(context, com.example.permissions.MyDeviceAdminReceiver::class.java))
+                
+                showSystemWarning = !isDebugApp || !isAdmin
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    if (showSystemWarning) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { /* optionally do nothing */ }) {
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(64.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.AdminPanelSettings,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Systemzugriff benötigt",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Für eine bessere KI AGENT Erfahrung schalte bitte die Option als \"Debugging-App\" in den Entwickleroptionen an und setze die App als \"Geräteadministrator\".\n\nOhne diese Berechtigungen kann der Agent keine vollständige Systemkontrolle übernehmen.",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { 
+                            showSystemWarning = false
+                            currentTab = "settings"
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text("Jetzt einrichten", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = { showSystemWarning = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text("Später erinnern", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedLiquidBackground()
+        
+        Scaffold(
+            containerColor = Color.Transparent,
+            bottomBar = {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                    modifier = Modifier.testTag("bottom_nav_bar")
+                ) {
                 NavigationBarItem(
                     selected = currentTab == "chat",
                     onClick = { currentTab = "chat" },
@@ -107,10 +227,10 @@ fun MainAgentView(
                     label = { Text("Agent") }
                 )
                 NavigationBarItem(
-                    selected = currentTab == "inbox",
-                    onClick = { currentTab = "inbox" },
-                    icon = { Icon(Icons.Default.Email, contentDescription = "Inbox") },
-                    label = { Text("Inbox") }
+                    selected = currentTab == "notifications",
+                    onClick = { currentTab = "notifications" },
+                    icon = { Icon(Icons.Default.Notifications, contentDescription = "Notifications") },
+                    label = { Text("Benachrichtigungen") }
                 )
                 NavigationBarItem(
                     selected = currentTab == "calendar",
@@ -138,11 +258,10 @@ fun MainAgentView(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
         ) {
             when (currentTab) {
                 "chat" -> AgentChatTab(viewModel, hasCalendarPerms, onRequestPermissions = { requestCalendarPermissions() })
-                "inbox" -> SimulatedInboxTab(viewModel, onNavigateToChat = { currentTab = "chat" })
+                "notifications" -> NotificationManagerTab(viewModel, onNavigateToChat = { currentTab = "chat" })
                 "calendar" -> SystemCalendarTab(viewModel, hasCalendarPerms, onRequestPermissions = { requestCalendarPermissions() })
                 "library" -> AgentLibraryTab(viewModel)
                 "settings" -> AgentSettingsTab(
@@ -180,6 +299,7 @@ fun MainAgentView(
                 )
             }
         }
+    }
     }
 }
 
@@ -923,319 +1043,9 @@ fun ProposedActionBlock(
 }
 
 
-// ==================== SIMULATED INBOX TAB ====================
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SimulatedInboxTab(
-    viewModel: AgentViewModel,
-    onNavigateToChat: () -> Unit
-) {
-    val emails by viewModel.emails.collectAsStateWithLifecycle()
-    var openAddDialog by remember { mutableStateOf(false) }
 
-    var senderInput by remember { mutableStateOf("") }
-    var subjectInput by remember { mutableStateOf("") }
-    var bodyInput by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Inbox Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(vertical = 16.dp, horizontal = 20.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        "Simulierter Posteingang",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        letterSpacing = (-0.5).sp
-                    )
-                    Text(
-                        "${emails.size} Nachrichten im Gerätespeicher",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = { viewModel.clearInbox() },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(percent = 50))
-                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
-                    ) {
-                        Icon(
-                            Icons.Default.DeleteSweep,
-                            contentDescription = "Inbox leeren",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    IconButton(
-                        onClick = { openAddDialog = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(percent = 50))
-                            .background(MaterialTheme.colorScheme.primary)
-                            .testTag("add_email_button")
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "E-Mail simulieren",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-        }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-
-        // Emails Column
-        if (emails.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Outlined.MailOutline,
-                        contentDescription = "Keine E-Mails",
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        "Posteingang ist leer", 
-                        fontWeight = FontWeight.Bold, 
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        "Simuliere eine eingehende E-Mail, um die automatische Terminplanung und Antwort-Generierung des Agenten zu testen!",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 6.dp, start = 32.dp, end = 32.dp),
-                        textAlign = TextAlign.Center,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(emails) { email ->
-                    EmailCard(email, onReplyWithAgent = {
-                        val prompt = "Analysiere diese E-Mail, entwerfe eine Antwort und plane einen Kalendertermin, falls der Absender darum gebeten hat:\n\n" +
-                                "Von: ${email.sender}\n" +
-                                "Betreff: ${email.subject}\n" +
-                                "Inhalt: ${email.body}"
-                        viewModel.sendMessage(prompt)
-                        onNavigateToChat()
-                    }, onDelete = {
-                        viewModel.removeEmail(email.id)
-                    })
-                }
-            }
-        }
-    }
-
-    // Compose Email Simulation Modal
-    if (openAddDialog) {
-        AlertDialog(
-            onDismissRequest = { openAddDialog = false },
-            shape = RoundedCornerShape(28.dp),
-            title = { 
-                Text(
-                    "E-Mail-Eingang simulieren", 
-                    fontWeight = FontWeight.Bold, 
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                ) 
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        "Füge eine simulierte E-Mail in den lokalen Speicher ein, um den Agenten zu testen.", 
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedTextField(
-                        value = senderInput,
-                        onValueChange = { senderInput = it },
-                        label = { Text("Absender (z. B. chef@firma.com)") },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("email_sender_input")
-                    )
-                    OutlinedTextField(
-                        value = subjectInput,
-                        onValueChange = { subjectInput = it },
-                        label = { Text("Betreff") },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("email_subject_input")
-                    )
-                    OutlinedTextField(
-                        value = bodyInput,
-                        onValueChange = { bodyInput = it },
-                        label = { Text("Nachrichtentext") },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .testTag("email_body_input")
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (senderInput.isNotEmpty() && bodyInput.isNotEmpty()) {
-                            viewModel.addEmailToInbox(senderInput, subjectInput, bodyInput)
-                            senderInput = ""
-                            subjectInput = ""
-                            bodyInput = ""
-                            openAddDialog = false
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.testTag("email_confirm_add")
-                ) {
-                    Text("Empfangen")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { openAddDialog = false },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) { 
-                    Text("Abbrechen") 
-                }
-            }
-        )
-    }
-}
-
-@Composable
-fun EmailCard(
-    email: EmailItem,
-    onReplyWithAgent: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(24.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Filled.AccountCircle,
-                            contentDescription = "Absender",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        email.sender,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                IconButton(
-                    onClick = onDelete, 
-                    modifier = Modifier
-                        .size(26.dp)
-                        .clip(RoundedCornerShape(percent = 50))
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "Löschen",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                email.subject,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                email.body,
-                fontSize = 12.sp,
-                lineHeight = 17.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Spacer(modifier = Modifier.height(14.dp))
-            Button(
-                onClick = onReplyWithAgent,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(vertical = 10.dp)
-            ) {
-                Icon(
-                    Icons.Default.SupportAgent,
-                    contentDescription = "Verarbeiten",
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("E-Mail mit KI-Agent verarbeiten", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
 
 
 // ==================== CALENDAR TAB ====================
@@ -1265,13 +1075,12 @@ fun SystemCalendarTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
     ) {
         // Calendar Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
                 .padding(vertical = 16.dp, horizontal = 20.dp)
         ) {
             Row(
@@ -1590,6 +1399,13 @@ fun AgentSettingsTab(
     var showPasswordAnthropic by remember { mutableStateOf(false) }
     var showPasswordGemini by remember { mutableStateOf(false) }
 
+    val agentLang by viewModel.agentLanguageFlow.collectAsStateWithLifecycle()
+    var showLangMenu by remember { mutableStateOf(false) }
+    val supportedLanguages = listOf(
+        "Deutsch", "English", "Español", "Français", "Italiano", "Português", 
+        "Русский", "日本語", "한국어", "中文", "Nederlands", "Polski", "Türkçe", "Svenska", "العربية"
+    )
+
     val statusMsg by viewModel.statusMessage.collectAsStateWithLifecycle()
 
     if (statusMsg != null) {
@@ -1602,7 +1418,6 @@ fun AgentSettingsTab(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -1622,6 +1437,69 @@ fun AgentSettingsTab(
                     lineHeight = 18.sp,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+        }
+
+        // --- Language Configuration ---
+        item {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Language,
+                            contentDescription = "Agent Language",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Agent Spracheinstellungen",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Text(
+                        "Wähle die bevorzugte Antwortsprache deines KI Agenten:",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { showLangMenu = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(agentLang)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Sprache wählen")
+                        }
+                        DropdownMenu(
+                            expanded = showLangMenu,
+                            onDismissRequest = { showLangMenu = false },
+                            modifier = Modifier.fillMaxWidth(0.9f)
+                        ) {
+                            supportedLanguages.forEach { lang ->
+                                DropdownMenuItem(
+                                    text = { Text(lang) },
+                                    onClick = {
+                                        viewModel.setAgentLanguage(lang)
+                                        showLangMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1894,6 +1772,135 @@ fun AgentSettingsTab(
                         hasPermission = hasAccountsPerms,
                         onRequest = onRequestAccountsPerms
                     )
+                }
+            }
+        }
+
+        // --- System Access (Debugging / Admin) ---
+        item {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val isDebugApp = try {
+                android.provider.Settings.Global.getString(context.contentResolver, android.provider.Settings.Global.DEBUG_APP) == context.packageName
+            } catch (e: Exception) { false }
+            
+            val dpm = context.getSystemService(android.content.Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+            val isAdmin = dpm.isAdminActive(android.content.ComponentName(context, com.example.permissions.MyDeviceAdminReceiver::class.java))
+            
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.AdminPanelSettings,
+                            contentDescription = "System Access",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Erweiterter Systemzugriff",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Damit der KI Agent vollständig auf Systemfunktionen zugreifen und diese automatisieren kann, muss die App als Debugging-App und als Geräteadministrator konfiguriert werden.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Debugging App Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Debugging-App",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "In Entwickleroptionen festlegen",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (isDebugApp) {
+                            Icon(Icons.Default.CheckCircle, "Aktiv", tint = Color(0xFF4CAF50))
+                        } else {
+                            Button(
+                                onClick = { 
+                                    try {
+                                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        // Not available
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), contentColor = MaterialTheme.colorScheme.primary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Aktivieren", fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                    // Device Administrator Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Geräteadministrator",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "Für tiefgreifende Automationen",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (isAdmin) {
+                            Icon(Icons.Default.CheckCircle, "Aktiv", tint = Color(0xFF4CAF50))
+                        } else {
+                            Button(
+                                onClick = { 
+                                    try {
+                                        val intent = android.content.Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                                        intent.putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, android.content.ComponentName(context, com.example.permissions.MyDeviceAdminReceiver::class.java))
+                                        intent.putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Notwendig für erweiterte KI-Systemautomationen")
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        // Fallback
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), contentColor = MaterialTheme.colorScheme.primary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Aktivieren", fontSize = 12.sp)
+                            }
+                        }
+                    }
                 }
             }
         }

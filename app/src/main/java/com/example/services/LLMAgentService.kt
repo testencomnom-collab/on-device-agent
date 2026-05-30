@@ -11,7 +11,7 @@ import com.example.data.api.GeminiRequest
 import com.example.data.api.LLMServiceClient
 import com.example.data.api.OpenAiMessage
 import com.example.data.api.OpenAiRequest
-import com.example.data.model.EmailItem
+import com.example.data.model.NotificationItem
 import com.example.data.repository.AgentRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -46,35 +46,50 @@ class LLMAgentService(
     private val localEngine by lazy { LocalInferenceEngine(context) }
     private var isLocalEngineReady = false
 
-    suspend fun executeAgentQuery(agentId: String, userQuery: String, emailsContext: List<EmailItem>): AgentProposal = withContext(Dispatchers.IO) {
+    suspend fun executeAgentQuery(agentId: String, userQuery: String, notificationsContext: List<NotificationItem>): AgentProposal = withContext(Dispatchers.IO) {
         val activeProvider = preferencesManager.activeProvider
         val apiKey = preferencesManager.getActiveApiKey()
         val model = preferencesManager.getActiveModel()
 
-        if (agentId != "system") {
-            // PFAD B: Local On-Device Mode
+        // 1. HYBRID-ROUTING-SYSTEM: Weichenstellung
+
+        // PFAD B: Echter Lokaler Modus (On-Device MediaPipe)
+        if (agentId != "system" && agentId.isNotEmpty()) {
+            Log.d(TAG, "Routing to Local On-Device Mode for Agent: $agentId")
             if (!isLocalEngineReady) {
-                isLocalEngineReady = localEngine.initialize()
+                isLocalEngineReady = localEngine.initialize() 
+            }
+            if (!isLocalEngineReady) {
+                return@withContext AgentProposal(
+                    thought = "Lokale Modellgewichte fehlen oder Engine Error.",
+                    responseText = "Fehler: Das MediaPipe Modell für $agentId (" +
+                                 "gemma_2b_it_cpu_int4.bin) ist nicht aktiv. Bitte lade " +
+                                 "das echte Modell in der Bibliothek herunter.",
+                    hasAction = false,
+                    actionType = "NONE"
+                )
             }
             
             val agentConfig = repository.getAgentConfig(agentId)
-            val sysPrompt = agentConfig?.systemPrompt ?: "Du bist ein lokaler Assistent."
-            val fullPrompt = "$sysPrompt\n\nNutzer-Anfrage: $userQuery"
+            val agentLang = preferencesManager.agentLanguage
+            val sysPrompt = (agentConfig?.systemPrompt ?: "Du bist ein lokaler KI Assistent.") + " WICHTIG: Antworte in dieser Sprache: $agentLang"
+            // Clean specific templating ideal for Gemma instruction tuned models
+            val fullPrompt = "<start_of_turn>user\n${sysPrompt}\n\nUser: $userQuery\n<end_of_turn>\n<start_of_turn>model\n"
             
             val response = localEngine.generateResponse(fullPrompt)
             return@withContext AgentProposal(
-                thought = "Local On-Device Inference via MediaPipe (${agentConfig?.name ?: agentId})",
-                responseText = response,
+                thought = "PFAD B: 100% Offline-Ausführung (Gemma 2B). Keine Cloud-APIs oder Netzwerke genutzt.",
+                responseText = response.trim(),
                 hasAction = false,
                 actionType = "NONE"
             )
         }
 
-        // PFAD A: Cloud Mode (Requires API Key)
+        // PFAD A: Cloud-Modus (Open AI / Anthropic / Gemini Rest APIs)
         if (apiKey.trim().isEmpty()) {
             return@withContext AgentProposal(
-                thought = "No API key configured.",
-                responseText = "Fehler: Es ist kein API-Key konfiguriert. Bitte wechsle in die Einstellungen (Settings) und trage einen gültigen API-Key für OpenAI, Anthropic oder Google Gemini ein, um mit den Agenten zu interagieren.",
+                thought = "Cloud-API-Routing (PFAD A) fehlgeschlagen: Kein Key konfiguriert.",
+                responseText = "Hinweis: Für den Cloud-Chat ist kein API-Key hinterlegt. Bitte wechsle zu den Einstellungen (Settings) und trage einen gültigen API-Schlüssel ein, um die Live-KI API zu nutzen. Alternativ kannst du offline mit lokalen Agenten chatten.",
                 hasAction = false,
                 actionType = "NONE"
             )
@@ -99,13 +114,13 @@ class LLMAgentService(
             }
         }
 
-        // 2. Gather Inbox context
+        // 2. Gather Notifications context
         val inboxDetails = StringBuilder()
-        if (emailsContext.isEmpty()) {
-            inboxDetails.append("No active emails in local simulated Inbox.\n")
+        if (notificationsContext.isEmpty()) {
+            inboxDetails.append("No active notifications.\n")
         } else {
-            emailsContext.take(5).forEach { email ->
-                inboxDetails.append("- From: ${email.sender} | Subj: ${email.subject} | EmailBody: \"${email.body}\"\n")
+            notificationsContext.take(5).forEach { notif ->
+                inboxDetails.append("- From: ${notif.sender} (App: ${notif.appName}) | Msg: \"${notif.message}\" | Replied: ${notif.aiReplied}\n")
             }
         }
 
@@ -136,9 +151,12 @@ class LLMAgentService(
             "--- ACTIVE AGENT PERSONA ---\n${agentConfig.systemPrompt}\n-----------------------------------------\n"
         } else ""
 
+        val agentLang = preferencesManager.agentLanguage
+
         val systemPrompt = """
             $agentPersonaStr
             You are an advanced On-Device AI Agent. You assist the user with everyday assistant actions on their phone, including reading/answering emails and booking calendar events based on their direct calendar availability.
+            You must reply in the following language: $agentLang.
             
             Current Date & Time context of the user: $currentDateTimeStr
             
@@ -146,7 +164,7 @@ class LLMAgentService(
             $calendarDetails
             ----------------------------------------------------------------
             
-            --- RECENT SIMULATED USER INBOX EMAILS ---
+            --- RECENT USER NOTIFICATIONS ---
             $inboxDetails
             -----------------------------------------
             
@@ -315,6 +333,60 @@ class LLMAgentService(
                 hasAction = false,
                 actionType = "NONE"
             )
+        }
+    }
+
+    suspend fun generateDirectReply(agentId: String, prompt: String): String = withContext(Dispatchers.IO) {
+        val activeProvider = preferencesManager.activeProvider
+        val apiKey = preferencesManager.getActiveApiKey()
+        val model = preferencesManager.getActiveModel()
+
+        if (apiKey.trim().isEmpty()) {
+            return@withContext "(Error: No API Key configured for AI Auto-Reply)"
+        }
+
+        val agentLang = preferencesManager.agentLanguage
+
+        val systemPrompt = "Du bist ein hilfreicher Assistent. Generiere eine sehr kurze und präzise Antwort (max 1-2 Sätze) als direkte Reaktion per Text. Gib NUR die Antwortnachricht zurück, keine Erklärungen und kein JSON. WICHTIG: Antworte in dieser Sprache: $agentLang"
+
+        try {
+            when (activeProvider) {
+                "OPENAI" -> {
+                    val messages = listOf(
+                        OpenAiMessage("system", systemPrompt),
+                        OpenAiMessage("user", prompt)
+                    )
+                    val response = LLMServiceClient.openAiApi.getOpenAiCompletion(
+                        authHeader = "Bearer $apiKey",
+                        request = OpenAiRequest(model = model, messages = messages)
+                    )
+                    return@withContext response.body()?.choices?.firstOrNull()?.message?.content ?: "Error"
+                }
+                "ANTHROPIC" -> {
+                    val messages = listOf(AnthropicMessage("user", prompt))
+                    val response = LLMServiceClient.anthropicApi.getAnthropicCompletion(
+                        apiKey = apiKey,
+                        request = AnthropicRequest(model = model, messages = messages, system = systemPrompt)
+                    )
+                    return@withContext response.body()?.content?.firstOrNull()?.text ?: "Error"
+                }
+                "GEMINI" -> {
+                    val fullPrompt = "$systemPrompt\n\nCommand: $prompt"
+                    val request = GeminiRequest(
+                        contents = listOf(GeminiContent(parts = listOf(GeminiPart(text = fullPrompt))))
+                    )
+                    val response = LLMServiceClient.geminiApi.getGeminiCompletion(
+                        model = model,
+                        apiKey = apiKey,
+                        request = request
+                    )
+                    return@withContext response.body()?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text ?: "Error"
+                }
+                else -> return@withContext "Error: Unknown provider"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generating direct reply", e)
+            return@withContext "Error: ${e.message}"
         }
     }
 

@@ -5,14 +5,13 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.data.model.ChatMessage
-import com.example.data.model.EmailItem
-
+import com.example.data.model.NotificationItem
 import com.example.data.model.AgentConfigEntity
 
-@Database(entities = [ChatMessage::class, EmailItem::class, AgentConfigEntity::class], version = 2, exportSchema = false)
+@Database(entities = [ChatMessage::class, NotificationItem::class, AgentConfigEntity::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
-    abstract fun emailDao(): EmailDao
+    abstract fun notificationDao(): NotificationDao
     abstract fun agentConfigDao(): AgentConfigDao
 
     companion object {

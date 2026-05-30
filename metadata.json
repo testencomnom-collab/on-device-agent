@@ -1,5 +1,5 @@
 {
-  "name": "Android Mobile Automation Agent",
+  "name": "On-Device Agent",
   "description": "An AI-powered Android automation assistant designed specifically for mobile devices. It manages calendar scheduling, handles email composition, and automates workflows natively on-device.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

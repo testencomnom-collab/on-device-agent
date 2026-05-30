@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentLibraryTab(viewModel: AgentViewModel) {
+    val downloadingAgents by viewModel.downloadingAgents.collectAsStateWithLifecycle()
     val downloadedAgents by viewModel.downloadedAgentsFlow.collectAsStateWithLifecycle()
     val activeAgents by viewModel.activeAgentsFlow.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
@@ -169,10 +170,15 @@ fun AgentLibraryTab(viewModel: AgentViewModel) {
                 }
 
                 items(agents) { agent ->
+                    val progress = downloadingAgents[agent.id]
+                    val isDownloading = progress != null
+
                     AgentMarketplaceCard(
                         agent = agent,
                         isDownloaded = downloadedAgents.contains(agent.id),
                         isActive = activeAgents.contains(agent.id),
+                        isDownloading = isDownloading,
+                        downloadProgress = progress ?: 0f,
                         onDownloadStart = { viewModel.downloadAgent(agent.id) },
                         onActiveChange = { active -> viewModel.setAgentActive(agent.id, active) }
                     )
@@ -187,13 +193,12 @@ fun AgentMarketplaceCard(
     agent: LocalAgentModel,
     isDownloaded: Boolean,
     isActive: Boolean = false,
+    isDownloading: Boolean = false,
+    downloadProgress: Float = 0f,
     onDownloadStart: () -> Unit,
     onActiveChange: (Boolean) -> Unit = {}
 ) {
-    var isDownloading by remember { mutableStateOf(false) }
-    var downloadProgress by remember { mutableStateOf(0f) }
-    var downloadSpeed by remember { mutableStateOf("0 MB/s") }
-    var secondsRemaining by remember { mutableStateOf(2) }
+    val downloadSpeed by remember { mutableStateOf("Download") }
     
     val scope = rememberCoroutineScope()
     
@@ -214,21 +219,6 @@ fun AgentMarketplaceCard(
         "langflow" -> Icons.Default.AccountTree
         "smolagents" -> Icons.Default.Bolt
         else -> Icons.Default.SmartToy
-    }
-
-    if (isDownloading) {
-        LaunchedEffect(Unit) {
-            val totalSteps = 40
-            for (step in 1..totalSteps) {
-                delay(50)
-                downloadProgress = step.toFloat() / totalSteps
-                downloadSpeed = "${(12..18).random()}.${(0..9).random()} MB/s"
-                secondsRemaining = ((totalSteps - step) * 50) / 1000 + 1
-            }
-            onDownloadStart()
-            isDownloading = false
-            downloadProgress = 0f
-        }
     }
 
     Card(
@@ -366,7 +356,7 @@ fun AgentMarketplaceCard(
                             )
                         }
                         Text(
-                            text = "$downloadSpeed • Noch ${secondsRemaining}s",
+                            text = "$downloadSpeed (2.1GB) via OkHttp...",
                             fontSize = 10.sp,
                             fontFamily = FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -387,26 +377,11 @@ fun AgentMarketplaceCard(
                             trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
-                        // Stop button to cancel simulation
-                        IconButton(
-                            onClick = { isDownloading = false },
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(RoundedCornerShape(percent = 50))
-                                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Abbrechen",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
                     }
                 }
             } else if (!isDownloaded) {
                 Button(
-                    onClick = { isDownloading = true },
+                    onClick = onDownloadStart,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

@@ -1,9 +1,9 @@
 package com.example.data.repository
 
 import com.example.data.database.ChatDao
-import com.example.data.database.EmailDao
+import com.example.data.database.NotificationDao
 import com.example.data.model.ChatMessage
-import com.example.data.model.EmailItem
+import com.example.data.model.NotificationItem
 import kotlinx.coroutines.flow.Flow
 
 import com.example.data.database.AgentConfigDao
@@ -11,10 +11,10 @@ import com.example.data.model.AgentConfigEntity
 
 class AgentRepository(
     private val chatDao: ChatDao,
-    private val emailDao: EmailDao,
+    private val notificationDao: NotificationDao,
     private val agentConfigDao: AgentConfigDao
 ) {
-    val allEmails: Flow<List<EmailItem>> = emailDao.getAllEmails()
+    val allNotifications: Flow<List<NotificationItem>> = notificationDao.getAllNotifications()
 
     fun getMessages(agentId: String): Flow<List<ChatMessage>> {
         return chatDao.getAllMessages(agentId)
@@ -44,15 +44,15 @@ class AgentRepository(
         chatDao.markActionExecuted(id)
     }
 
-    suspend fun insertEmail(email: EmailItem): Long {
-        return emailDao.insertEmail(email)
+    suspend fun insertNotification(notification: NotificationItem): Long {
+        return notificationDao.insertNotification(notification)
     }
 
-    suspend fun deleteEmail(id: Int) {
-        emailDao.deleteEmail(id)
+    suspend fun updateNotificationReply(id: Int, replyText: String) {
+        notificationDao.updateReply(id, replyText)
     }
 
-    suspend fun clearInbox() {
-        emailDao.clearInbox()
+    suspend fun clearNotifications() {
+        notificationDao.deleteAll()
     }
 }
