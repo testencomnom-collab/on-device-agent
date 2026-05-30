@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🤖 On-Device AI Agent (V2)
+# 🤖 On-Device AI Agent (V4)
 
 **A native Android automation assistant that manages your device natively. Run powerful LLMs via API, or switch to the Fully Offline Simulated Agent engine to execute mock profiles of industry-leading AI agents (OpenHands, CrewAI, AutoGen) right on your phone.**
 
@@ -11,19 +11,22 @@
 
 <br>
 
-[![Download APK](https://img.shields.io/badge/Download-Latest_APK_V2-FF4500?style=for-the-badge&logo=android&logoColor=white)](https://github.com/testencomnom-collab/on-device-agent/raw/main/releases/on-device-agent-V2.apk)
+[![Download APK](https://img.shields.io/badge/Download-Latest_APK_V4-FF4500?style=for-the-badge&logo=android&logoColor=white)](https://github.com/testencomnom-collab/on-device-agent/raw/main/releases/on-device-agent-V4.apk)
 
 </div>
 
 ---
 
-## ✨ Key Features (V2 Update)
+## ✨ Key Features (V4 Update)
 
-- 🔌 **Fully Offline Simulated Agents**: Download JSON configurations for complex frameworks like **OpenHands, Goose, Browser-Use, CrewAI, and Flowise**. Each agent gets its own isolated, persistent chat history and dynamically adjusted system prompt.
+- 📲 **Messenger Automation**: Full deep-link and intent integration to directly send messages via **WhatsApp, Snapchat, Instagram, Telegram, and Discord**.
+- 🔦 **Hardware & Utilities**: Voice-driven control over **Flashlight, Alarms, Timers, Spotify playback, and Web Searches**.
+- 🧠 **True On-Device LLM (Gemma 2B)**: Download and run the actual **1.35 GB Gemma 2B model** via MediaPipe entirely offline without an internet connection.
+- 🎨 **Beautiful Modern UI**: A sleek, dark-mode focused UI with a brand new custom app icon and glassmorphic elements.
+- 🔌 **Fully Offline Simulated Agents**: Download JSON configurations for complex frameworks like **OpenHands, Goose, Browser-Use, CrewAI, and Flowise**.
 - 📱 **Mobile Automation Engine**: Automatically parses intents to execute complex system actions like booking calendar events or drafting emails based on conversational queries.
 - 🔑 **Dynamic Runtime Permissions**: Native handling for standard Android runtime permissions (Calendar, Contacts, Location) to safely coordinate local task routing.
 - 🧠 **Multi-LLM Integration**: Connect your own API keys for OpenAI (GPT-4o), Anthropic (Claude 3.5), or Google Gemini for maximum reasoning power.
-- 🗄️ **Local Security & Room Database**: Complete local persistence of chat flows, inbox tables, downloaded agent configurations, and encrypted API preferences.
 
 ---
 
@@ -35,14 +38,14 @@ The app dynamically routes your requests either through a real LLM endpoint or a
 graph TD;
     A[User Query] --> B{API Key Configured?};
     B -- Yes --> C[Cloud LLM Provider<br/>OpenAI/Anthropic/Gemini];
-    B -- No --> D[Local Simulation Engine];
+    B -- No --> D[Local Simulation Engine / Gemma 2B];
     
     C --> E{Action Intent Detected?};
     D --> E;
     
-    E -- Calendar --> F[ActionHandler: Read/Write Android Calendar];
-    E -- System Action --> G[ActionHandler: App Launch & Accessibility Automation];
-    E -- Email --> I[ActionHandler: Open Email Composer];
+    E -- System Action --> G[ActionHandler: Flashlight, Alarms, App Launch & Accessibility Automation];
+    E -- Messengers --> I[ActionHandler: WhatsApp, Snapchat, Instagram, Discord, Telegram];
+    E -- Media --> J[ActionHandler: Spotify, Web Search];
     E -- None --> H[Return Chat Response];
 ```
 
