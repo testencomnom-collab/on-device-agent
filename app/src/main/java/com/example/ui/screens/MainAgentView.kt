@@ -228,6 +228,19 @@ fun AgentChatTab(
     var inputQuery by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    val speechRecognizerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            val results = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            val spokenText = results?.get(0)
+            if (!spokenText.isNullOrEmpty()) {
+                inputQuery = spokenText
+            }
+        }
+    }
+
     val activeAgentId by viewModel.activeChatAgentId.collectAsStateWithLifecycle()
     val activeAgentsSet by viewModel.activeAgentsFlow.collectAsStateWithLifecycle()
     val allAgents = LocalAgentRepository.agents
@@ -314,6 +327,20 @@ fun AgentChatTab(
                             }
                         }
                     }
+                }
+                IconButton(
+                    onClick = { viewModel.clearHistory() },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Chat-Verlauf leeren",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
@@ -605,7 +632,31 @@ fun AgentChatTab(
                         }
                     )
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(
+                    onClick = {
+                        try {
+                            val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                            }
+                            speechRecognizerLauncher.launch(intent)
+                        } catch (e: Exception) {
+                            // Ignored if STT not available
+                        }
+                    },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                ) {
+                    Icon(
+                        Icons.Default.Mic,
+                        contentDescription = "Spracheingabe",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
                 IconButton(
                     onClick = {
                         if (inputQuery.trim().isNotEmpty() && !isLoading) {
