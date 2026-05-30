@@ -37,7 +37,6 @@ class LocalInferenceEngine(private val context: Context) {
             val options = LlmInference.LlmInferenceOptions.builder()
                 .setModelPath(modelFile.absolutePath)
                 .setMaxTokens(1024)
-                .setTemperature(0.7f)
                 .build()
                 
             llmInference = LlmInference.createFromOptions(context, options)

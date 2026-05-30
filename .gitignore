@@ -16,3 +16,4 @@
 local.properties
 .env
 debug.keystore
+releases/on-device-agent.apk
