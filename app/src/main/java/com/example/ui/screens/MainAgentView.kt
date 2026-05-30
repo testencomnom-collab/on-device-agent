@@ -1394,6 +1394,7 @@ fun AgentSettingsTab(
     var openaiKey by remember { mutableStateOf(viewModel.preferencesManager.openAiApiKey) }
     var anthropicKey by remember { mutableStateOf(viewModel.preferencesManager.anthropicApiKey) }
     var geminiKey by remember { mutableStateOf(viewModel.preferencesManager.geminiApiKey) }
+    var customModelText by remember { mutableStateOf(viewModel.preferencesManager.selectedModel) }
 
     var showPasswordOpenai by remember { mutableStateOf(false) }
     var showPasswordAnthropic by remember { mutableStateOf(false) }
@@ -1662,6 +1663,30 @@ fun AgentSettingsTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("gemini_api_key_field"),
+                            maxLines = 1,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Config Key Custom Model
+                    Column {
+                        Text(
+                            "Manuelles Modell (leer lassen für Standard)", 
+                            fontWeight = FontWeight.Bold, 
+                            fontSize = 11.sp, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
+                        )
+                        OutlinedTextField(
+                            value = customModelText,
+                            onValueChange = {
+                                customModelText = it
+                                viewModel.updateModel(it)
+                            },
+                            placeholder = { Text(viewModel.preferencesManager.getActiveModel()) },
+                            modifier = Modifier.fillMaxWidth(),
                             maxLines = 1,
                             shape = RoundedCornerShape(12.dp)
                         )

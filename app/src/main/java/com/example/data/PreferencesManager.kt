@@ -74,9 +74,9 @@ class PreferencesManager(context: Context) {
         val model = selectedModel
         if (model.isNotEmpty()) return model
         return when (activeProvider) {
-            "OPENAI" -> "gpt-4o-mini"
-            "ANTHROPIC" -> "claude-3-5-sonnet-20241022"
-            "GEMINI" -> "gemini-1.5-flash"
+            "OPENAI" -> "gpt-4o"
+            "ANTHROPIC" -> "claude-3-5-sonnet-latest"
+            "GEMINI" -> "gemini-1.5-pro-latest"
             else -> ""
         }
     }
