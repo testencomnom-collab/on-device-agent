@@ -890,6 +890,8 @@ fun ProposedActionBlock(
     var calendarDesc = ""
     var calendarStart = 0L
     var calendarEnd = 0L
+    var systemActionApp = ""
+    var systemActionInstruction = ""
 
     try {
         val json = JSONObject(actionDataJson)
