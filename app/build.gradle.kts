@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
@@ -20,12 +23,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+  val localProperties = Properties()
+  val localPropertiesFile = rootProject.file("local.properties")
+  if (localPropertiesFile.exists()) {
+      localProperties.load(FileInputStream(localPropertiesFile))
+  }
+  val keystorePassword = localProperties.getProperty("KEYSTORE_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD") ?: ""
+
   signingConfigs {
     create("release") {
       storeFile = file("${rootDir}/release.keystore")
-      storePassword = "password123"
+      storePassword = keystorePassword
       keyAlias = "release_key"
-      keyPassword = "password123"
+      keyPassword = keystorePassword
     }
   }
 
